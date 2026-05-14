@@ -64,7 +64,7 @@ URL default:
 
 ## Pembagian Tugas
 
-Baca [docs/team/README.md](docs/team/README.md) terlebih dahulu. Setiap anggota punya file detail masing-masing:
+Baca [docs/team/pembagian-tugas.md](docs/team/pembagian-tugas.md) terlebih dahulu. Setiap anggota punya file detail masing-masing:
 
 - [Anggota 1 - Admin/Integrator](docs/team/anggota-1-admin-integrator.md)
 - [Anggota 2 - Auth Backend dan State](docs/team/anggota-2-auth-backend-state.md)
