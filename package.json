@@ -1,0 +1,26 @@
+{
+  "name": "ppwl-clone-facebook",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run dev:all",
+    "dev:all": "concurrently -n API,WEB -c blue,green \"bun --filter @ppwl/api dev\" \"bun --filter @ppwl/web dev\"",
+    "dev:api": "bun --filter @ppwl/api dev",
+    "dev:web": "bun --filter @ppwl/web dev",
+    "build": "bun --filter '*' build",
+    "typecheck": "bun --filter '*' typecheck",
+    "lint": "bun --filter '*' lint",
+    "db:generate": "bun --cwd apps/api prisma generate",
+    "db:migrate": "bun --cwd apps/api prisma migrate dev",
+    "db:seed": "bun --filter @ppwl/api seed",
+    "db:studio": "bun --cwd apps/api prisma studio"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.8.3"
+  }
+}
