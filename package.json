@@ -16,7 +16,6 @@
     "lint": "bun --filter '*' lint",
     "db:generate": "bun --cwd apps/api prisma generate",
     "db:migrate": "bun --cwd apps/api prisma migrate dev",
-    "db:seed": "bun --filter @ppwl/api seed",
     "db:studio": "bun --cwd apps/api prisma studio"
   },
   "devDependencies": {

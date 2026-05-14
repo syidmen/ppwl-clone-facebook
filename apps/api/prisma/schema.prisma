@@ -7,40 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+}
+
 enum NotificationType {
   LIKE
   COMMENT
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String
-  email         String         @unique
-  passwordHash  String?
-  isGoogle      Boolean        @default(false)
-  avatarUrl     String?
-  googleId      String?        @unique
-  posts         Post[]
-  comments      Comment[]
-  likes         Like[]
-  notifications Notification[] @relation("NotificationRecipient")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  name            String
+  username        String         @unique
+  email           String         @unique
+  passwordHash    String?
+  avatarUrl       String?
+  bio             String?
+  provider        AuthProvider   @default(EMAIL)
+  providerId      String?        @unique
+  emailVerifiedAt DateTime?
+  posts           Post[]
+  comments        Comment[]
+  likes           PostLike[]
+  notifications   Notification[] @relation("NotificationRecipient")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model Post {
-  id        String    @id @default(cuid())
-  text      String
+  id        String     @id @default(cuid())
+  userId    String
+  content   String
   imageUrl  String?
-  authorId  String
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  likes     Like[]
+  author    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes     PostLike[]
   comments  Comment[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
-model Like {
+model PostLike {
   id        String   @id @default(cuid())
   postId    String
   userId    String
@@ -53,24 +61,24 @@ model Like {
 
 model Comment {
   id        String   @id @default(cuid())
-  text      String
   postId    String
-  authorId  String
+  userId    String
+  content   String
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Notification {
   id          String           @id @default(cuid())
-  recipientId String
+  userId      String
   actorId     String?
+  type        NotificationType
   postId      String?
   commentId   String?
-  type        NotificationType
   message     String
-  readAt      DateTime?
-  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  isRead      Boolean          @default(false)
+  recipient   User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime         @default(now())
 }

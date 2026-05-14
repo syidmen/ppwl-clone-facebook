@@ -6,17 +6,10 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
-    "build:lambda": "bun build src/lambda.ts --outdir dist-lambda --target node",
     "start": "bun dist/index.js",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "prisma": "prisma",
-    "seed": "bun prisma/seed.ts",
-    "db:seed": "bun prisma/seed.ts",
-    "db:studio": "prisma studio"
-  },
-  "prisma": {
-    "seed": "bun prisma/seed.ts"
+    "prisma": "prisma"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.2.0",
@@ -28,7 +21,6 @@
     "elysia": "^1.2.25"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.149",
     "@types/bun": "^1.2.13",
     "prisma": "^6.7.0",
     "typescript": "^5.8.3"

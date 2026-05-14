@@ -1,57 +1,37 @@
-export const LIMITS = {
-  maxPostsPerUser: 2,
-  maxCommentsPerUser: 5,
-  maxPostTextLength: 2000,
-  maxCommentTextLength: 1000,
-  allowedImageMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"]
-} as const;
+export type UserProvider = "email" | "google";
 
-export type PublicUser = {
+export type UserDTO = {
   id: string;
   name: string;
+  username: string;
   email: string;
-  isGoogle: boolean;
   avatarUrl: string | null;
+  provider: UserProvider;
   createdAt: string;
 };
 
-export type FeedPost = {
+export type PostDTO = {
   id: string;
-  text: string;
+  content: string;
   imageUrl: string | null;
-  author: PublicUser;
+  author: UserDTO;
   likeCount: number;
   commentCount: number;
-  likedByMe: boolean;
   createdAt: string;
   updatedAt: string;
 };
 
-export type CommentItem = {
+export type CommentDTO = {
   id: string;
-  text: string;
-  author: PublicUser;
+  content: string;
+  author: UserDTO;
   createdAt: string;
 };
 
-export type NotificationItem = {
+export type NotificationDTO = {
   id: string;
-  type: "LIKE" | "COMMENT";
+  type: "like" | "comment";
   message: string;
-  readAt: string | null;
+  isRead: boolean;
   createdAt: string;
 };
-
-export type AuthUser = PublicUser & {
-  token: string;
-};
-
-export function assertImageOnly(mimeType: string) {
-  if (!LIMITS.allowedImageMimeTypes.includes(mimeType as never)) {
-    throw new Error("Hanya file gambar yang diperbolehkan. Upload video tidak didukung.");
-  }
-}
-
-export function isNonEmptyText(value: unknown, maxLength = LIMITS.maxPostTextLength): value is string {
-  return typeof value === "string" && value.trim().length > 0 && value.trim().length <= maxLength;
-}
