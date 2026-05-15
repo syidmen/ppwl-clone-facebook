@@ -12,15 +12,16 @@
     "prisma": "prisma"
   },
   "dependencies": {
-    "@elysiajs/cors": "^1.2.0",
-    "@elysiajs/jwt": "^1.2.0",
-    "@elysiajs/swagger": "^1.2.0",
-    "@prisma/client": "^6.7.0",
+    "@elysiajs/cors": "^1.4.2",
+    "@elysiajs/jwt": "^1.4.2",
+    "@elysiajs/swagger": "^1.3.1",
     "@ppwl/shared": "workspace:*",
-    "bcryptjs": "^3.0.2",
+    "@prisma/client": "^6.7.0",
+    "bcryptjs": "^3.0.3",
     "elysia": "^1.2.25"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/bun": "^1.2.13",
     "prisma": "^6.7.0",
     "typescript": "^5.8.3"
