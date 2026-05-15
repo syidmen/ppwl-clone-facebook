@@ -1,9 +1,5 @@
 # Anggota 1 - Admin/Integrator
 
-## Di Pegang Oleh
-
-Admin project, yaitu kamu.
-
 ## Tujuan
 
 Menjaga project tetap stabil saat semua anggota bekerja paralel. Anggota 1 tidak mengambil fitur besar seperti auth, feed, comment, atau notification. Fokusnya adalah integrasi, review, dan menjaga kontrak agar tidak berubah sembarangan.
