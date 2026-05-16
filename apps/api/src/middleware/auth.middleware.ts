@@ -1,26 +1,29 @@
-import { Elysia } from 'elysia';
-import { jwtConfig } from '../utils/token';
+import { Elysia } from "elysia";
+import { jwtConfig, type AuthTokenPayload } from "../utils/token";
 
 export const authMiddleware = new Elysia()
   .use(jwtConfig)
-  .derive({ as: 'global' }, async ({ jwt, headers }) => {
-    const auth = headers['authorization'];
-    
-    if (!auth || !auth.startsWith('Bearer ')) {
-      return { user: null };
+  .derive({ as: "global" }, async ({ jwt, headers, set }) => {
+    const authHeader = headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+      set.status = 401;
+      return { authUser: null };
     }
 
-    const token = auth.slice(7);
-    const profile = await jwt.verify(token);
+    const token = authHeader.slice(7);
+    const payload = await jwt.verify(token);
 
-    return { user: profile || null };
-  })
-  .onBeforeHandle(({ user, set }) => {
-    if (!user) {
+    if (!payload || typeof payload.sub !== "string") {
       set.status = 401;
-      return { 
-        status: 'error',
-        message: 'Unauthorized: Silakan login terlebih dahulu' 
-      };
+      return { authUser: null };
+    }
+
+    return { authUser: payload as AuthTokenPayload };
+  })
+  .onBeforeHandle(({ authUser, set }) => {
+    if (!authUser) {
+      set.status = 401;
+      return { message: "Unauthorized: silakan login terlebih dahulu" };
     }
   });

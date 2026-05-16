@@ -2,6 +2,8 @@ import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
 import { env } from "./env";
+import { authModule } from "./modules/auth";
+import { userModule } from "./modules/users";
 
 const allowedOrigins = [
   env("WEB_ORIGIN", "http://localhost:5173")!,
@@ -17,4 +19,6 @@ export const app = new Elysia()
     status: "ready",
     message: "Baseline API siap dikembangkan oleh tim."
   }))
-  .get("/health", () => ({ ok: true, service: "ppwl-api" }));
+  .get("/health", () => ({ ok: true, service: "ppwl-api" }))
+  .use(authModule)
+  .use(userModule);
