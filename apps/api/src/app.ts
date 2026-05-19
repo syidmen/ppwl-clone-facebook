@@ -4,6 +4,7 @@ import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
 import { env } from "./env";
 import { authModule } from "./modules/auth";
+import { notificationRoutes } from "./modules/notifications";
 import { userModule } from "./modules/users";
 
 const allowedOrigins = [
@@ -23,4 +24,5 @@ export const app = new Elysia()
   .get("/health", () => ({ ok: true, service: "ppwl-api" }))
   .use(authModule)
   .use(userModule)
-  .use(commentsRoutes); 
+  .use(commentsRoutes)
+  .use(notificationRoutes); 

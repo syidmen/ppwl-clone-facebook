@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, CheckCheck, RefreshCw } from "lucide-react";
-import { useAuthStore } from "../../stores/auth.store";
-import { useNotificationStore, type Notification } from "../../stores/notification.store";
 import { formatDistanceToNow } from "date-fns";
 import { id as localeId } from "date-fns/locale";
+import { useAuthStore } from "../../stores/auth.store";
+import {
+  useNotificationStore,
+  type Notification
+} from "../../stores/notification.store";
+
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 const MOCK_NOTIFICATIONS: Notification[] = [
   {
@@ -13,15 +18,16 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     type: "like",
     post_id: "10",
     comment_id: null,
+    message: "Budi Santoso menyukai postinganmu",
     is_read: false,
     created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     actor: {
       id: "2",
       name: "Budi Santoso",
       username: "budi",
-      avatar_url: null,
+      avatar_url: null
     },
-    post: { id: "10", content: "Postingan pertamaku di sini!" },
+    post: { id: "10", content: "Postingan pertamaku di sini!" }
   },
   {
     id: "2",
@@ -30,15 +36,16 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     type: "comment",
     post_id: "10",
     comment_id: "5",
+    message: "Siti Rahayu mengomentari postinganmu",
     is_read: false,
     created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     actor: {
       id: "3",
       name: "Siti Rahayu",
       username: "siti",
-      avatar_url: null,
+      avatar_url: null
     },
-    post: { id: "10", content: "Postingan pertamaku di sini!" },
+    post: { id: "10", content: "Postingan pertamaku di sini!" }
   },
   {
     id: "3",
@@ -47,94 +54,88 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     type: "like",
     post_id: "11",
     comment_id: null,
+    message: "Andi Wijaya menyukai postinganmu",
     is_read: true,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     actor: {
       id: "4",
       name: "Andi Wijaya",
       username: "andi",
-      avatar_url: null,
+      avatar_url: null
     },
-    post: { id: "11", content: "Berbagi foto hari ini." },
-  },
+    post: { id: "11", content: "Berbagi foto hari ini." }
+  }
 ];
 
 function NotificationItem({
   notification,
-  onRead,
+  onRead
 }: {
   notification: Notification;
   onRead: (id: string) => void;
 }) {
-  const getLabel = () => {
-    if (notification.type === "like") return "menyukai postinganmu";
-    if (notification.type === "comment") return "mengomentari postinganmu";
-    if (notification.type === "follow") return "mulai mengikutimu";
-    return "";
-  };
+  const action =
+    notification.type === "like"
+      ? "menyukai postinganmu"
+      : "mengomentari postinganmu";
 
-  const getInitial = (name: string) =>
-    name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  const actorName = notification.actor?.name ?? "Seseorang";
+  const initials = actorName
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div
       onClick={() => !notification.is_read && onRead(notification.id)}
-      className={`flex items-start gap-3 p-4 rounded-2xl cursor-pointer transition-colors ${
+      className={`flex items-start gap-3 rounded-2xl p-4 transition-colors ${
         notification.is_read
           ? "bg-white dark:bg-gray-900"
-          : "bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900"
-      }`}
+          : "border border-indigo-100 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/40"
+      } ${notification.is_read ? "" : "cursor-pointer"}`}
     >
-      {/* Avatar */}
-      <div className="w-10 h-10 shrink-0 rounded-full bg-indigo-200 dark:bg-indigo-800 flex items-center justify-center overflow-hidden">
-        {notification.actor.avatar_url ? (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-200 dark:bg-indigo-800">
+        {notification.actor?.avatar_url ? (
           <img
             src={notification.actor.avatar_url}
-            alt={notification.actor.name}
-            className="w-full h-full object-cover"
+            alt={actorName}
+            className="h-full w-full object-cover"
           />
         ) : (
           <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">
-            {getInitial(notification.actor.name)}
+            {initials}
           </span>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-sm text-gray-800 dark:text-gray-200">
-          <span className="font-semibold">{notification.actor.name}</span>{" "}
-          {getLabel()}
+          <span className="font-semibold">{actorName}</span> {action}
           {notification.post && (
             <span className="text-gray-500 dark:text-gray-400">
-              {" "}
-              &mdash;{" "}
+              {" - "}
               <span className="italic">
-                &ldquo;
+                "
                 {notification.post.content.length > 40
-                  ? notification.post.content.slice(0, 40) + "…"
+                  ? `${notification.post.content.slice(0, 40)}...`
                   : notification.post.content}
-                &rdquo;
+                "
               </span>
             </span>
           )}
         </p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="mt-1 text-xs text-gray-400">
           {formatDistanceToNow(new Date(notification.created_at), {
             addSuffix: true,
-            locale: localeId,
+            locale: localeId
           })}
         </p>
       </div>
 
-      {/* Unread dot */}
       {!notification.is_read && (
-        <div className="w-2.5 h-2.5 mt-1.5 shrink-0 rounded-full bg-indigo-500" />
+        <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-indigo-500" />
       )}
     </div>
   );
@@ -149,7 +150,7 @@ export default function NotificationsPage() {
     setNotifications,
     markAsRead,
     markAllAsRead,
-    setLoading,
+    setLoading
   } = useNotificationStore();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -158,27 +159,30 @@ export default function NotificationsPage() {
 
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated || !token) {
-      // Pakai mock jika belum login / endpoint belum siap
-      setNotifications(MOCK_NOTIFICATIONS, MOCK_NOTIFICATIONS.filter((n) => !n.is_read).length);
+      setNotifications(
+        MOCK_NOTIFICATIONS,
+        MOCK_NOTIFICATIONS.filter((notification) => !notification.is_read).length
+      );
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/notifications`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications, data.unreadCount);
-      } else {
-        setNotifications(MOCK_NOTIFICATIONS, MOCK_NOTIFICATIONS.filter((n) => !n.is_read).length);
+      const response = await fetch(`${API_URL}/notifications`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch notifications");
       }
+
+      const data = await response.json();
+      setNotifications(data.notifications ?? [], data.unreadCount ?? 0);
     } catch {
-      setNotifications(MOCK_NOTIFICATIONS, MOCK_NOTIFICATIONS.filter((n) => !n.is_read).length);
+      setNotifications(
+        MOCK_NOTIFICATIONS,
+        MOCK_NOTIFICATIONS.filter((notification) => !notification.is_read).length
+      );
     } finally {
       setLoading(false);
     }
@@ -196,49 +200,45 @@ export default function NotificationsPage() {
 
   const handleMarkAsRead = async (id: string) => {
     markAsRead(id);
-    if (token) {
-      try {
-        await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/notifications/${id}/read`,
-          {
-            method: "PATCH",
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-      } catch {
-        // silent
-      }
+
+    if (!token) return;
+
+    try {
+      await fetch(`${API_URL}/notifications/${id}/read`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch {
+      // Keep the optimistic UI update.
     }
   };
 
   const handleMarkAllRead = async () => {
     markAllAsRead();
-    if (token) {
-      try {
-        await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/notifications/read-all`,
-          {
-            method: "PATCH",
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-      } catch {
-        // silent
-      }
+
+    if (!token) return;
+
+    try {
+      await fetch(`${API_URL}/notifications/read-all`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch {
+      // Keep the optimistic UI update.
     }
   };
 
-  // Pull-to-refresh touch handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (event: React.TouchEvent) => {
     if (window.scrollY === 0) {
-      setTouchStartY(e.touches[0].clientY);
+      setTouchStartY(event.touches[0].clientY);
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (event: React.TouchEvent) => {
     if (touchStartY === null) return;
-    const dist = e.touches[0].clientY - touchStartY;
-    if (dist > 0) setPullDistance(Math.min(dist, 80));
+
+    const distance = event.touches[0].clientY - touchStartY;
+    if (distance > 0) setPullDistance(Math.min(distance, 80));
   };
 
   const handleTouchEnd = () => {
@@ -254,10 +254,9 @@ export default function NotificationsPage() {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Pull indicator */}
       {pullDistance > 0 && (
         <div
-          className="flex justify-center items-center text-indigo-500 transition-all"
+          className="flex items-center justify-center text-indigo-500 transition-all"
           style={{ height: pullDistance, overflow: "hidden" }}
         >
           <RefreshCw
@@ -267,15 +266,14 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bell className="text-indigo-600 dark:text-indigo-400" size={22} />
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             Notifikasi
           </h1>
           {unreadCount > 0 && (
-            <span className="bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-bold text-white">
               {unreadCount}
             </span>
           )}
@@ -285,7 +283,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+              className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
             >
               <CheckCheck size={15} />
               Tandai semua dibaca
@@ -294,7 +292,7 @@ export default function NotificationsPage() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800"
             aria-label="Refresh notifikasi"
           >
             <RefreshCw
@@ -305,44 +303,45 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Loading state */}
       {isLoading && notifications.length === 0 && (
         <div className="flex flex-col gap-3">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map((item) => (
             <div
-              key={i}
-              className="flex items-start gap-3 p-4 rounded-2xl bg-white dark:bg-gray-900 animate-pulse"
+              key={item}
+              className="flex animate-pulse items-start gap-3 rounded-2xl bg-white p-4 dark:bg-gray-900"
             >
-              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0" />
+              <div className="h-10 w-10 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-700" />
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Empty state */}
       {!isLoading && notifications.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-900/30">
             <Bell size={32} className="text-indigo-300 dark:text-indigo-600" />
           </div>
-          <p className="text-gray-500 dark:text-gray-400 font-medium">
+          <p className="font-medium text-gray-500 dark:text-gray-400">
             Belum ada notifikasi
           </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+          <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
             Notifikasi akan muncul saat ada aktivitas di postinganmu
           </p>
         </div>
       )}
 
-      {/* Notification list */}
       {notifications.length > 0 && (
         <div className="flex flex-col gap-2">
-          {notifications.map((n) => (
-            <NotificationItem key={n.id} notification={n} onRead={handleMarkAsRead} />
+          {notifications.map((notification) => (
+            <NotificationItem
+              key={notification.id}
+              notification={notification}
+              onRead={handleMarkAsRead}
+            />
           ))}
         </div>
       )}

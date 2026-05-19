@@ -9,10 +9,10 @@ export default function WelcomeToast() {
   useEffect(() => {
     if (isAuthenticated && user && !hasShown.current) {
       hasShown.current = true;
-      toast.success(`Selamat datang, ${user.name}! 👋`, {
+      toast.success(`Selamat datang, ${user.name}!`, {
         description: "Senang melihatmu kembali.",
         duration: 4000,
-        position: "top-center",
+        position: "top-center"
       });
     }
 
