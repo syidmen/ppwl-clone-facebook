@@ -1,11 +1,66 @@
+import { useState } from "react";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import { PostDetailPage } from './pages/post-detail'; // Ini sudah kamu siapkan, mantap!
+import ProfilePage from "./pages/profile/ProfilePage";
+
+// 1. UBAH DI SINI: Tambahkan "post-detail" ke dalam daftar tipe halaman (Page)
+type Page = "login" | "register" | "profile" | "post-detail";
+
 export function App() {
+  const [page, setPage] = useState<Page>("login");
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center px-6 py-12">
-      <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">PPWL Social Media</p>
-      <h1 className="mt-3 text-3xl font-bold text-slate-950">Setup awal monorepo siap untuk kerja tim.</h1>
-      <p className="mt-4 max-w-2xl text-slate-600">
-        Fitur aplikasi sengaja belum diimplementasikan. Lihat folder <code>docs/team</code> untuk pembagian tugas.
-      </p>
+    <main className="min-h-screen bg-[#F0F2F5]">
+      <nav className="sticky top-0 z-10 border-b border-[#CED0D4] bg-white/95 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setPage("login")}
+            className="text-[18px] font-bold text-[#1877F2]"
+          >
+            PPWL Social
+          </button>
+
+          <div className="flex rounded-[6px] bg-[#F0F2F5] p-1">
+            {/* 2. UBAH DI SINI: Tambahkan "post-detail" ke dalam array agar tombolnya muncul di menu atas untuk kamu tes */}
+            {(["login", "register", "profile", "post-detail"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setPage(item)}
+                className={`rounded-[5px] px-3 py-1.5 text-[13px] font-semibold capitalize transition ${
+                  page === item
+                    ? "bg-white text-[#1877F2] shadow-sm"
+                    : "text-[#606770] hover:text-[#1C1E21]"
+                }`}
+              >
+                {/* Modifikasi teks sedikit agar tampilan tombol "post-detail" terpisah rapi menjadi "Post Detail" */}
+                {item === "post-detail" ? "Post Detail" : item}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {page === "login" && (
+        <LoginPage
+          onSuccess={() => setPage("profile")}
+          onGoRegister={() => setPage("register")}
+        />
+      )}
+
+      {page === "register" && (
+        <RegisterPage
+          onSuccess={() => setPage("profile")}
+          onGoLogin={() => setPage("login")}
+        />
+      )}
+
+      {page === "profile" && <ProfilePage />}
+
+      {/* 3. UBAH DI SINI: Tambahkan logika pengkondisian untuk menampilkan halaman komentarmu */}
+      {page === "post-detail" && <PostDetailPage />}
     </main>
   );
 }

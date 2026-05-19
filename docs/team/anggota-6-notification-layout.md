@@ -30,7 +30,7 @@ Mengerjakan notifikasi, navbar, layout dasar aplikasi, popup selamat datang sete
 1. Navbar
    - logo/nama aplikasi.
    - menu beranda, notifikasi, profile.
-   - avatar/nama user jika login memakai mock auth state jika auth belum siap.
+   - avatar/nama user jika login memakai `apps/web/src/stores/auth.store.ts`.
    - badge unread notification.
 2. Layout shell
    - responsif mobile dan desktop.
@@ -47,9 +47,17 @@ Mengerjakan notifikasi, navbar, layout dasar aplikasi, popup selamat datang sete
 
 ## Kerja Paralel
 
-- Gunakan mock auth user jika Anggota 2 belum selesai.
+- Auth backend dan auth store sudah tersedia dari Anggota 2. Gunakan `useAuthStore` untuk membaca user login, token, dan status login.
+- Login/register/profile UI sudah tersedia dari Anggota 3. Navbar cukup menautkan/menampilkan akses ke halaman tersebut; jangan membuat ulang auth form.
 - Gunakan mock notifications untuk UI jika endpoint belum siap.
 - Export layout/navbar component; admin yang memasang ke `App.tsx` final.
+
+## Integrasi Yang Sudah Bisa Dipakai
+
+- Frontend dapat membaca `user`, `token`, `isAuthenticated`, dan `logout` dari `useAuthStore`.
+- Backend endpoint notifikasi wajib login dapat memakai `authMiddleware` dan Bearer token.
+- Popup selamat datang bisa dipicu saat `isAuthenticated` berubah menjadi `true`.
+- Profile link dapat mengarah ke halaman profile yang sudah dibuat Anggota 3 saat admin memasang routing final.
 
 ## Batasan Supaya Tidak Konflik
 

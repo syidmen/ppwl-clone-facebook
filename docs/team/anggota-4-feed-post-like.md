@@ -53,9 +53,18 @@ Mengerjakan beranda, form postingan, CRUD postingan, like/unlike, dan dummy data
 
 ## Kerja Paralel
 
-- Gunakan mock user/token lokal untuk test create/like jika auth belum siap.
+- Auth backend dan auth store sudah tersedia dari Anggota 2. Untuk endpoint wajib login, gunakan `authMiddleware` di backend dan token dari `apps/web/src/stores/auth.store.ts` di frontend.
+- Login/register/profile UI sudah tersedia dari Anggota 3. Jangan membuat ulang halaman auth.
+- Mock user/token hanya dipakai sebagai fallback test lokal jika backend auth sedang tidak berjalan.
 - Gunakan mock `commentCount` jika module komentar belum siap.
 - Jangan memanggil service notifikasi langsung; admin akan sambungkan jika diperlukan.
+
+## Integrasi Yang Sudah Bisa Dipakai
+
+- Backend dapat membaca user login lewat Bearer token dan `authMiddleware`.
+- Frontend dapat membaca `user`, `token`, `isAuthenticated`, `setAuth`, dan `logout` dari `useAuthStore`.
+- User belum login tetap boleh melihat `GET /posts`.
+- Untuk `POST /posts`, `PATCH /posts/:id`, `DELETE /posts/:id`, dan `POST /posts/:id/like`, kirim header `Authorization: Bearer <token>`.
 
 ## Batasan Supaya Tidak Konflik
 
