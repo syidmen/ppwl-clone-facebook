@@ -4,6 +4,7 @@ import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
 import { env } from "./env";
 import { authModule } from "./modules/auth";
+import { notificationRoutes } from "./modules/notifications";
 import { userModule } from "./modules/users";
 import { postsModule } from "./modules/posts";
 import { likesModule } from "./modules/likes";
@@ -34,3 +35,5 @@ export const app = new Elysia()
   .use(postsModule)
   .use(likesModule)
   .use(commentsRoutes);
+  .use(commentsRoutes)
+  .use(notificationRoutes); 
