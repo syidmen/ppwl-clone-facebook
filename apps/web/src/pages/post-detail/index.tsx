@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { getCommentsByPostId, createComment } from '../../api/comments.api';
+import { getComments, getCommentsByPostId, createComment } from '../../api/comments.api';
 import { useAuthStore } from '../../stores/auth.store';
 import { CommentItem } from '../../components/comment/CommentItem';
 import { Input } from '../../components/ui/Input';
@@ -11,15 +11,22 @@ export const PostDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [postId, setPostId] = useState('');
   
   const { isAuthenticated, user } = useAuthStore();
-  
-  const MOCK_POST_ID = "post-123"; 
 
-  const fetchComments = async () => {
+  const resolvePostId = async () => {
+    const queryPostId = new URLSearchParams(window.location.search).get('postId');
+    if (queryPostId) return queryPostId;
+
+    const latestComments = await getComments();
+    return latestComments[0]?.postId ?? '';
+  };
+
+  const fetchComments = async (targetPostId: string) => {
     try {
       setLoading(true);
-      const data = await getCommentsByPostId(MOCK_POST_ID);
+      const data = await getCommentsByPostId(targetPostId);
       setComments(data);
     } catch (err: any) {
       setError(err.message);
@@ -29,17 +36,36 @@ export const PostDetailPage = () => {
   };
 
   useEffect(() => {
-    fetchComments();
+    const initialize = async () => {
+      try {
+        setLoading(true);
+        const resolvedPostId = await resolvePostId();
+
+        if (!resolvedPostId) {
+          setError('Belum ada post/komentar untuk dites.');
+          return;
+        }
+
+        setPostId(resolvedPostId);
+        await fetchComments(resolvedPostId);
+      } catch (err: any) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    initialize();
   }, []);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+    if (!postId) return;
 
     try {
-      await createComment(MOCK_POST_ID, newComment);
+      await createComment(postId, newComment);
       setNewComment('');
-      fetchComments();
+      fetchComments(postId);
     } catch (err: any) {
       alert(err.message || 'Gagal mengirim komentar. (Maksimal 5 komentar)');
     }
@@ -59,6 +85,7 @@ export const PostDetailPage = () => {
             </div>
           </div>
           <p className="text-[15px]">Ini adalah *mockup* postingan sementara. Nanti akan diganti secara otomatis saat integrasi dengan pekerjaan Anggota 4.</p>
+          {postId && <p className="mt-2 text-[12px] text-gray-500">Post ID: {postId}</p>}
         </div>
         
         <hr className="my-4 border-gray-200" />
@@ -84,6 +111,7 @@ export const PostDetailPage = () => {
                 {user?.name?.charAt(0) || 'U'}
              </div>
              <Input 
+                label="Komentar"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Tulis komentar publik..."

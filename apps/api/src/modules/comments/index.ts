@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import prisma from '../../db';
+import { prisma } from '../../db';
 import { authMiddleware } from '../../middleware/auth.middleware';
 
 export const commentsRoutes = new Elysia()
@@ -24,27 +24,32 @@ export const commentsRoutes = new Elysia()
 
   // 3. Tambah komentar (POST /posts/:id/comments) - Wajib Login
   .use(authMiddleware)
-  .post('/posts/:id/comments', async ({ params: { id }, body, user, error }) => {
+  .post('/posts/:id/comments', async ({ params: { id }, body, authUser, set }) => {
+    if (!authUser) {
+      set.status = 401;
+      return { message: 'Unauthorized: silakan login terlebih dahulu' };
+    }
     
     // Validasi maksimal 5 komentar per user
     const commentCount = await prisma.comment.count({
-      where: { postId: id, userId: user.id }
+      where: { userId: authUser.sub }
     });
 
     if (commentCount >= 5) {
-      return error(400, "Maksimal 5 komentar per user untuk postingan ini.");
+      set.status = 400;
+      return { message: 'Maksimal 5 komentar per user.' };
     }
 
     const newComment = await prisma.comment.create({
       data: {
         content: body.content,
         postId: id,
-        userId: user.id
+        userId: authUser.sub
       }
     });
 
     // Expose event placeholder untuk Anggota 6 (Notification)
-    console.log(`[Notification Placeholder] User ${user.id} mengomentari post ${id}`);
+    console.log(`[Notification Placeholder] User ${authUser.sub} mengomentari post ${id}`);
 
     return newComment;
   }, {
