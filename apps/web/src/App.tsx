@@ -1,9 +1,11 @@
 import { useState } from "react";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import { PostDetailPage } from './pages/post-detail'; // Ini sudah kamu siapkan, mantap!
 import ProfilePage from "./pages/profile/ProfilePage";
 
-type Page = "login" | "register" | "profile";
+// 1. UBAH DI SINI: Tambahkan "post-detail" ke dalam daftar tipe halaman (Page)
+type Page = "login" | "register" | "profile" | "post-detail";
 
 export function App() {
   const [page, setPage] = useState<Page>("login");
@@ -21,7 +23,8 @@ export function App() {
           </button>
 
           <div className="flex rounded-[6px] bg-[#F0F2F5] p-1">
-            {(["login", "register", "profile"] as const).map((item) => (
+            {/* 2. UBAH DI SINI: Tambahkan "post-detail" ke dalam array agar tombolnya muncul di menu atas untuk kamu tes */}
+            {(["login", "register", "profile", "post-detail"] as const).map((item) => (
               <button
                 key={item}
                 type="button"
@@ -32,7 +35,8 @@ export function App() {
                     : "text-[#606770] hover:text-[#1C1E21]"
                 }`}
               >
-                {item}
+                {/* Modifikasi teks sedikit agar tampilan tombol "post-detail" terpisah rapi menjadi "Post Detail" */}
+                {item === "post-detail" ? "Post Detail" : item}
               </button>
             ))}
           </div>
@@ -54,6 +58,9 @@ export function App() {
       )}
 
       {page === "profile" && <ProfilePage />}
+
+      {/* 3. UBAH DI SINI: Tambahkan logika pengkondisian untuk menampilkan halaman komentarmu */}
+      {page === "post-detail" && <PostDetailPage />}
     </main>
   );
 }
