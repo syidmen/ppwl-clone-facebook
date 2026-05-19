@@ -1,5 +1,7 @@
 import { Elysia, t } from "elysia";
+import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../../db";
+import { env } from "../../env";
 import { comparePassword, hashPassword } from "../../utils/password";
 import { jwtConfig } from "../../utils/token";
 
@@ -24,6 +26,34 @@ function toAuthUser(user: AuthUserRecord) {
     createdAt: user.createdAt.toISOString()
   };
 }
+
+function slugifyUsername(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 18);
+}
+
+async function makeUniqueUsername(email: string, name: string) {
+  const emailName = email.split("@")[0] ?? "";
+  const base = slugifyUsername(emailName || name) || "user";
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const suffix = attempt === 0 ? "" : String(attempt);
+    const username = `${base}${suffix}`.slice(0, 20);
+    const existing = await prisma.user.findUnique({ where: { username } });
+
+    if (!existing) {
+      return username;
+    }
+  }
+
+  return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+}
+
+const googleClient = new OAuth2Client();
 
 export const authModule = new Elysia({ prefix: "/auth" })
   .use(jwtConfig)
@@ -89,9 +119,69 @@ export const authModule = new Elysia({ prefix: "/auth" })
   )
   .post(
     "/google",
-    ({ set }) => {
-      set.status = 501;
-      return { message: "Google OAuth belum diimplementasikan pada tahap ini" };
+    async ({ body, jwt, set }) => {
+      const googleClientId = env("GOOGLE_CLIENT_ID");
+
+      if (!googleClientId) {
+        set.status = 500;
+        return { message: "GOOGLE_CLIENT_ID belum diset di backend" };
+      }
+
+      const ticket = await googleClient.verifyIdToken({
+        idToken: body.token,
+        audience: googleClientId
+      }).catch(() => null);
+
+      if (!ticket) {
+        set.status = 401;
+        return { message: "Token Google tidak valid" };
+      }
+
+      const payload = ticket.getPayload();
+
+      if (!payload?.sub || !payload.email) {
+        set.status = 401;
+        return { message: "Token Google tidak valid" };
+      }
+
+      const email = payload.email.toLowerCase().trim();
+      const providerId = payload.sub;
+      const name = payload.name?.trim() || email.split("@")[0] || "Google User";
+      const avatarUrl = payload.picture ?? null;
+
+      const userByProvider = await prisma.user.findUnique({
+        where: { providerId }
+      });
+      const userByEmail = userByProvider
+        ? null
+        : await prisma.user.findUnique({ where: { email } });
+
+      const user =
+        userByProvider ??
+        (userByEmail
+          ? await prisma.user.update({
+              where: { id: userByEmail.id },
+              data: {
+                provider: "GOOGLE",
+                providerId,
+                avatarUrl: userByEmail.avatarUrl ?? avatarUrl,
+                emailVerifiedAt: payload.email_verified ? new Date() : undefined
+              }
+            })
+          : await prisma.user.create({
+              data: {
+                name,
+                username: await makeUniqueUsername(email, name),
+                email,
+                avatarUrl,
+                provider: "GOOGLE",
+                providerId,
+                emailVerifiedAt: payload.email_verified ? new Date() : undefined
+              }
+            }));
+
+      const token = await jwt.sign({ sub: user.id, email: user.email });
+      return { user: toAuthUser(user), token };
     },
     {
       body: t.Object({

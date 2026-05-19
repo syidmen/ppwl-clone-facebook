@@ -43,8 +43,17 @@ Mengerjakan detail postingan dan komentar 1 level sesuai update rules. Komentar 
 ## Kerja Paralel
 
 - Gunakan mock post detail di page sendiri agar tidak menunggu Anggota 4.
-- Gunakan mock user/token lokal untuk test tambah komentar jika auth belum siap.
+- Auth backend dan auth store sudah tersedia dari Anggota 2. Untuk tambah komentar, gunakan `authMiddleware` di backend dan token dari `apps/web/src/stores/auth.store.ts` di frontend.
+- Login/register/profile UI sudah tersedia dari Anggota 3. Jangan membuat ulang halaman auth.
+- Mock user/token hanya dipakai sebagai fallback test lokal jika backend auth sedang tidak berjalan.
 - Untuk notifikasi pemilik post, cukup expose event/function placeholder di module comment; admin akan sambungkan ke Anggota 6 saat integrasi.
+
+## Integrasi Yang Sudah Bisa Dipakai
+
+- Backend dapat membaca user login lewat Bearer token dan `authMiddleware`.
+- Frontend dapat membaca `user`, `token`, dan `isAuthenticated` dari `useAuthStore`.
+- User belum login tetap boleh melihat detail post dan komentar.
+- Untuk `POST /posts/:id/comments`, kirim header `Authorization: Bearer <token>`.
 
 ## Batasan Supaya Tidak Konflik
 

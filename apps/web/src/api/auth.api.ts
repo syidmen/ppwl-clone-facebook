@@ -7,6 +7,14 @@ export type AuthResponse = {
   token: string;
 };
 
+export type UpdateMeBody = {
+  name: string;
+  username: string;
+  email: string;
+  avatarUrl: string;
+  password?: string;
+};
+
 async function request<T>(path: string, options: RequestInit = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -39,8 +47,23 @@ export function login(body: { email: string; password: string }) {
   });
 }
 
+export function googleLogin(token: string) {
+  return request<AuthResponse>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ token })
+  });
+}
+
 export function fetchMe(token: string) {
   return request<UserDTO>("/me", {
     headers: { Authorization: `Bearer ${token}` }
+  });
+}
+
+export function updateMe(token: string, body: UpdateMeBody) {
+  return request<UserDTO>("/me", {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body)
   });
 }
