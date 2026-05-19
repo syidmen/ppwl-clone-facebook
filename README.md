@@ -4,6 +4,10 @@ Setup awal monorepo Bun + TypeScript untuk tugas besar PPWL: aplikasi sosial med
 
 link Gdocs: https://docs.google.com/document/d/1LafthdqknsYzHoa55z76cWz1JJ2-zBVuNNtL7JxEIDw/edit?usp=sharing
 
+Link Frontend: https://d1pjqlav14h8sb.cloudfront.net/
+
+Link Backend: https://h3qxapyg5yku6ow5w5k2rmyp640bozqw.lambda-url.us-east-1.on.aws/
+
 ## Stack
 
 - Frontend: Vite, React, Tailwind CSS
