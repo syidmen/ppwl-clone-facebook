@@ -1,4 +1,5 @@
 import type { Post } from "./posts.types";
+import { prisma } from "../../db";
 
 export const dummyPosts: Post[] = [
   {
@@ -43,7 +44,7 @@ export const getPostByIdService = (id: string) => {
   return dummyPosts.find((post) => post.id === id);
 };
 
-export const createPostService = (
+export const createPostService = async (
   user: any,
   body: {
     content: string;
@@ -62,6 +63,19 @@ export const createPostService = (
     throw new Error("Video tidak diperbolehkan");
   }
 
+  const author = await prisma.user.findUnique({
+    where: { id: user.sub },
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true
+    }
+  });
+
+  if (!author) {
+    throw new Error("User tidak ditemukan");
+  }
+
   const newPost: Post = {
     id: Date.now().toString(),
     content: body.content,
@@ -69,9 +83,9 @@ export const createPostService = (
     createdAt: new Date().toISOString(),
 
     author: {
-      id: user.sub,
-      name: user.name || "User",
-      avatarUrl: null
+      id: author.id,
+      name: author.name,
+      avatarUrl: author.avatarUrl
     },
 
     likeCount: 0,

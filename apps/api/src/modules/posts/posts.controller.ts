@@ -33,7 +33,7 @@ export const getPostByIdController = ({
   };
 };
 
-export const createPostController = ({
+export const createPostController = async ({
   authUser,
   body,
   set
@@ -47,7 +47,7 @@ export const createPostController = ({
       };
     }
 
-    const post = createPostService(
+    const post = await createPostService(
       authUser,
       body
     );

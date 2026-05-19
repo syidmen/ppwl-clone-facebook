@@ -8,7 +8,7 @@ export default function ProfilePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#F0F2F5] px-4 py-10">
+      <div className="min-h-screen bg-[#F0F2F5] px-4 py-10 text-[#1C1E21]">
         <div className="mx-auto w-full max-w-lg">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-[20px] font-semibold text-[#1C1E21] leading-[1.3]">Edit Profil</h1>
@@ -38,7 +38,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-[8px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] px-6 py-8">
+          <div className="bg-white text-[#1C1E21] rounded-[8px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] px-6 py-8">
             <EditProfileForm />
           </div>
         </div>

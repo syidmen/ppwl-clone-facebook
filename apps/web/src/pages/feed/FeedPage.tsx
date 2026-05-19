@@ -64,7 +64,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-6">
+    <div className="max-w-2xl mx-auto py-6 text-gray-900">
 
       <PostForm
         token={token ?? undefined}

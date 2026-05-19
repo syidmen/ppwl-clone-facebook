@@ -1,5 +1,8 @@
-import { toggleLike }
-from "../../api/posts.api";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { deletePost, toggleLike } from "../../api/posts.api";
+import { useAuthStore } from "../../stores/auth.store";
+import PostForm from "./PostForm";
 
 interface Props {
   post: any;
@@ -14,75 +17,116 @@ export default function PostCard({
   isAuthenticated,
   onRefresh
 }: Props) {
+  const user = useAuthStore((state) => state.user);
+  const [editing, setEditing] = useState(false);
+  const isOwner = user?.id === post.author.id;
 
   const handleLike = async () => {
-
     if (!isAuthenticated || !token) {
-      alert("Silakan login");
-
+      alert("Silakan login untuk like.");
       return;
     }
 
-    await toggleLike(
-      post.id,
-      token
-    );
-
-    onRefresh?.();
+    try {
+      await toggleLike(post.id, token);
+      onRefresh?.();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Gagal memproses like.");
+    }
   };
 
+  const handleDelete = async () => {
+    if (!token) return;
+    if (!confirm("Hapus post ini?")) return;
+
+    try {
+      await deletePost(post.id, token);
+      onRefresh?.();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Gagal menghapus post.");
+    }
+  };
+
+  if (editing) {
+    return (
+      <PostForm
+        post={post}
+        token={token}
+        isAuthenticated={isAuthenticated}
+        onCancel={() => setEditing(false)}
+        onSuccess={() => {
+          setEditing(false);
+          onRefresh?.();
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="bg-white rounded-xl shadow p-4 mb-4">
+    <div className="mb-4 rounded-xl bg-white p-4 text-gray-900 shadow">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-300 font-bold text-gray-600">
+            {post.author.avatarUrl ? (
+              <img
+                src={post.author.avatarUrl}
+                alt={post.author.name}
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              post.author.name?.charAt(0)?.toUpperCase() ?? "U"
+            )}
+          </div>
 
-      <div className="flex items-center gap-3 mb-3">
-
-        <div className="w-10 h-10 rounded-full bg-gray-300" />
-
-        <div>
-          <h3 className="font-bold">
-            {post.author.name}
-          </h3>
-
-          <p className="text-sm text-gray-500">
-            {new Date(
-              post.createdAt
-            ).toLocaleString()}
-          </p>
+          <div>
+            <h3 className="font-bold text-gray-900">{post.author.name}</h3>
+            <p className="text-sm text-gray-500">
+              {new Date(post.createdAt).toLocaleString("id-ID")}
+            </p>
+          </div>
         </div>
 
+        {isOwner && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm text-gray-700"
+            >
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              className="rounded-lg bg-red-50 px-3 py-1.5 text-sm text-red-600"
+            >
+              Hapus
+            </button>
+          </div>
+        )}
       </div>
 
-      <p className="mb-3">
-        {post.content}
-      </p>
+      <p className="mb-3 whitespace-pre-wrap text-gray-900">{post.content}</p>
 
       {post.imageUrl && (
         <img
           src={post.imageUrl}
           alt="post"
-          className="rounded-lg mb-3"
+          className="mb-3 max-h-[480px] w-full rounded-lg object-cover"
         />
       )}
 
-      <div className="flex gap-4 text-sm text-gray-600 mb-3">
-
-        <p>
-          ❤️ {post.likeCount}
-        </p>
-
-        <p>
-          💬 {post.commentCount}
-        </p>
-
+      <div className="mb-3 flex gap-4 text-sm text-gray-600">
+        <p>{post.likeCount} suka</p>
+        <Link to={`/post-detail?postId=${post.id}`} className="hover:underline">
+          {post.commentCount} komentar
+        </Link>
       </div>
 
       <button
         onClick={handleLike}
-        className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+        className="rounded-lg bg-blue-500 px-4 py-2 text-white"
       >
         Like
       </button>
-
     </div>
   );
 }
