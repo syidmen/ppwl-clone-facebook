@@ -1,30 +1,49 @@
 import { useState } from "react";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import { PostDetailPage } from './pages/post-detail'; // Ini sudah kamu siapkan, mantap!
 import ProfilePage from "./pages/profile/ProfilePage";
+import FeedPage from "./pages/feed/FeedPage";
+import { PostDetailPage } from "./pages/post-detail";
 
-// 1. UBAH DI SINI: Tambahkan "post-detail" ke dalam daftar tipe halaman (Page)
-type Page = "login" | "register" | "profile" | "post-detail";
+type Page =
+  | "login"
+  | "register"
+  | "profile"
+  | "feed"
+  | "post-detail";
 
 export function App() {
-  const [page, setPage] = useState<Page>("login");
+
+  const [page, setPage] =
+    useState<Page>("login");
 
   return (
     <main className="min-h-screen bg-[#F0F2F5]">
+
       <nav className="sticky top-0 z-10 border-b border-[#CED0D4] bg-white/95 px-4 py-3 backdrop-blur">
+
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3">
+
           <button
             type="button"
-            onClick={() => setPage("login")}
+            onClick={() => setPage("feed")}
             className="text-[18px] font-bold text-[#1877F2]"
           >
             PPWL Social
           </button>
 
           <div className="flex rounded-[6px] bg-[#F0F2F5] p-1">
-            {/* 2. UBAH DI SINI: Tambahkan "post-detail" ke dalam array agar tombolnya muncul di menu atas untuk kamu tes */}
-            {(["login", "register", "profile", "post-detail"] as const).map((item) => (
+
+            {(
+              [
+                "login",
+                "register",
+                "profile",
+                "feed",
+                "post-detail"
+              ] as const
+            ).map((item) => (
+
               <button
                 key={item}
                 type="button"
@@ -35,32 +54,42 @@ export function App() {
                     : "text-[#606770] hover:text-[#1C1E21]"
                 }`}
               >
-                {/* Modifikasi teks sedikit agar tampilan tombol "post-detail" terpisah rapi menjadi "Post Detail" */}
-                {item === "post-detail" ? "Post Detail" : item}
+                {item === "post-detail"
+                  ? "Post Detail"
+                  : item}
               </button>
+
             ))}
+
           </div>
         </div>
+
       </nav>
 
       {page === "login" && (
         <LoginPage
-          onSuccess={() => setPage("profile")}
+          onSuccess={() => setPage("feed")}
           onGoRegister={() => setPage("register")}
         />
       )}
 
       {page === "register" && (
         <RegisterPage
-          onSuccess={() => setPage("profile")}
+          onSuccess={() => setPage("feed")}
           onGoLogin={() => setPage("login")}
         />
       )}
 
-      {page === "profile" && <ProfilePage />}
+      {page === "profile" && (
+        <ProfilePage />
+      )}
+      {page === "feed" && (
+        <FeedPage />
+      )}
+      {page === "post-detail" && (
+        <PostDetailPage />
+      )}
 
-      {/* 3. UBAH DI SINI: Tambahkan logika pengkondisian untuk menampilkan halaman komentarmu */}
-      {page === "post-detail" && <PostDetailPage />}
     </main>
   );
 }
