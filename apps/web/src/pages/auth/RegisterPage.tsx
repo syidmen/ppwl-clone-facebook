@@ -7,7 +7,7 @@ type RegisterPageProps = {
 
 export default function RegisterPage({ onSuccess, onGoLogin }: RegisterPageProps) {
   return (
-    <div className="min-h-screen bg-[#F0F2F5] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-[#F0F2F5] text-[#1C1E21] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1877F2] text-white text-xl font-bold mb-4">
@@ -19,7 +19,7 @@ export default function RegisterPage({ onSuccess, onGoLogin }: RegisterPageProps
           </p>
         </div>
 
-        <div className="bg-white rounded-[8px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] px-6 py-8">
+        <div className="bg-white text-[#1C1E21] rounded-[8px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] px-6 py-8">
           <RegisterForm onSuccess={onSuccess} onGoLogin={onGoLogin} />
         </div>
       </div>

@@ -73,7 +73,7 @@ export const PostDetailPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-6">
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-4 border border-gray-200">
+      <div className="bg-white text-gray-900 p-4 rounded-lg shadow-sm mb-4 border border-gray-200">
         
         {/* Mocking Bagian Postingan dari Anggota 4 */}
         <div className="mb-4">

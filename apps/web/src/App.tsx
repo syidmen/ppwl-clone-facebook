@@ -1,66 +1,54 @@
-import { useState } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useNavigate
+} from "react-router-dom";
+import { AppLayout } from "./components/Layout";
 import LoginPage from "./pages/auth/LoginPage";
+import FeedPage from "./pages/feed/FeedPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import { PostDetailPage } from './pages/post-detail'; // Ini sudah kamu siapkan, mantap!
+import NotificationsPage from "./pages/notifications/NotificationsPage";
+import { PostDetailPage } from "./pages/post-detail";
 import ProfilePage from "./pages/profile/ProfilePage";
 
-// 1. UBAH DI SINI: Tambahkan "post-detail" ke dalam daftar tipe halaman (Page)
-type Page = "login" | "register" | "profile" | "post-detail";
-
-export function App() {
-  const [page, setPage] = useState<Page>("login");
+function LoginRoute() {
+  const navigate = useNavigate();
 
   return (
-    <main className="min-h-screen bg-[#F0F2F5]">
-      <nav className="sticky top-0 z-10 border-b border-[#CED0D4] bg-white/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setPage("login")}
-            className="text-[18px] font-bold text-[#1877F2]"
-          >
-            PPWL Social
-          </button>
+    <LoginPage
+      onSuccess={() => navigate("/")}
+      onGoRegister={() => navigate("/register")}
+    />
+  );
+}
 
-          <div className="flex rounded-[6px] bg-[#F0F2F5] p-1">
-            {/* 2. UBAH DI SINI: Tambahkan "post-detail" ke dalam array agar tombolnya muncul di menu atas untuk kamu tes */}
-            {(["login", "register", "profile", "post-detail"] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setPage(item)}
-                className={`rounded-[5px] px-3 py-1.5 text-[13px] font-semibold capitalize transition ${
-                  page === item
-                    ? "bg-white text-[#1877F2] shadow-sm"
-                    : "text-[#606770] hover:text-[#1C1E21]"
-                }`}
-              >
-                {/* Modifikasi teks sedikit agar tampilan tombol "post-detail" terpisah rapi menjadi "Post Detail" */}
-                {item === "post-detail" ? "Post Detail" : item}
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
+function RegisterRoute() {
+  const navigate = useNavigate();
 
-      {page === "login" && (
-        <LoginPage
-          onSuccess={() => setPage("profile")}
-          onGoRegister={() => setPage("register")}
-        />
-      )}
+  return (
+    <RegisterPage
+      onSuccess={() => navigate("/")}
+      onGoLogin={() => navigate("/login")}
+    />
+  );
+}
 
-      {page === "register" && (
-        <RegisterPage
-          onSuccess={() => setPage("profile")}
-          onGoLogin={() => setPage("login")}
-        />
-      )}
-
-      {page === "profile" && <ProfilePage />}
-
-      {/* 3. UBAH DI SINI: Tambahkan logika pengkondisian untuk menampilkan halaman komentarmu */}
-      {page === "post-detail" && <PostDetailPage />}
-    </main>
+export function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginRoute />} />
+        <Route path="/register" element={<RegisterRoute />} />
+        <Route element={<AppLayout />}>
+          <Route index element={<FeedPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/post-detail" element={<PostDetailPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

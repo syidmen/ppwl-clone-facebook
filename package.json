@@ -19,7 +19,9 @@
     "db:studio": "bun --cwd apps/api prisma studio"
   },
   "devDependencies": {
+    "@prisma/client": "6.19.3",
     "concurrently": "^9.2.1",
+    "prisma": "6.19.3",
     "typescript": "^5.8.3"
   },
   "dependencies": {
