@@ -44,7 +44,7 @@ export function RegisterForm({ onSuccess, onGoLogin }: RegisterFormProps) {
     if (!fields.name.trim()) errs.name = "Nama wajib diisi.";
     if (!fields.username.trim()) errs.username = "Username wajib diisi.";
     else if (!/^[a-z0-9_]{3,20}$/.test(fields.username))
-      errs.username = "Username: 3–20 karakter, huruf kecil/angka/underscore.";
+      errs.username = "Username: 3-20 karakter, huruf kecil/angka/underscore.";
     if (!fields.email) errs.email = "Email wajib diisi.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email))
       errs.email = "Format email tidak valid.";

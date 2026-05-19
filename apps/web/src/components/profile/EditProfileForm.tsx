@@ -5,17 +5,14 @@ import { updateProfile } from "../../api/profile.api";
 import { useAuthStore } from "../../stores/auth.store";
 
 export function EditProfileForm() {
-  const { user, token, setUser } = useAuthStore((s) => ({
-    user: s.user,
-    token: s.token,
-    setUser: s.setUser,
-  }));
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [name, setName] = useState(user?.name ?? "");
   const [username, setUsername] = useState(user?.username ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? "");
-  const [bio, setBio] = useState(user?.bio ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -29,7 +26,7 @@ export function EditProfileForm() {
     if (!name.trim()) errs.name = "Nama wajib diisi.";
     if (!username.trim()) errs.username = "Username wajib diisi.";
     else if (!/^[a-z0-9_]{3,20}$/.test(username))
-      errs.username = "Username: 3–20 karakter, huruf kecil/angka/underscore.";
+      errs.username = "Username: 3-20 karakter, huruf kecil/angka/underscore.";
     if (!email) errs.email = "Email wajib diisi.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       errs.email = "Format email tidak valid.";
@@ -57,10 +54,9 @@ export function EditProfileForm() {
         username,
         email,
         avatarUrl,
-        bio,
         ...(password ? { password } : {}),
       });
-      setUser(updated);
+      setAuth(updated, token ?? "");
       setSuccess("Profil berhasil diperbarui!");
       setPassword("");
       setConfirmPassword("");
@@ -141,20 +137,6 @@ export function EditProfileForm() {
         error={errors.email}
         disabled={loading}
       />
-
-      <div className="flex flex-col gap-1">
-        <label className="text-[13px] font-medium text-[#1C1E21]">Bio</label>
-        <textarea
-          placeholder="Ceritakan sedikit tentang dirimu..."
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          disabled={loading}
-          rows={3}
-          className="w-full rounded-[6px] border border-[#CED0D4] bg-white px-3 py-2 text-[15px] outline-none transition
-            focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]
-            disabled:bg-[#F0F2F5] disabled:cursor-not-allowed resize-none"
-        />
-      </div>
 
       <hr className="border-[#CED0D4]" />
       <p className="text-xs text-[#606770]">

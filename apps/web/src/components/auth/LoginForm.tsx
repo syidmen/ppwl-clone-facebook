@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { GoogleLogin } from "@react-oauth/google";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
-import { loginUser } from "../../api/profile.api";
+import { loginUser, loginWithGoogle } from "../../api/profile.api";
 import { useAuthStore } from "../../stores/auth.store";
 
 type LoginFormProps = {
@@ -48,8 +49,23 @@ export function LoginForm({ onSuccess, onGoRegister }: LoginFormProps) {
     }
   }
 
-  function handleGoogleLogin() {
-    alert("Google OAuth akan disambungkan oleh admin.");
+  async function handleGoogleLogin(token?: string) {
+    if (!token) {
+      setApiError("Login Google gagal. Token tidak ditemukan.");
+      return;
+    }
+
+    setApiError("");
+    setLoading(true);
+    try {
+      const data = await loginWithGoogle(token);
+      setAuth(data.user, data.accessToken);
+      onSuccess?.();
+    } catch (err: any) {
+      setApiError(err.message ?? "Login Google gagal.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -74,7 +90,7 @@ export function LoginForm({ onSuccess, onGoRegister }: LoginFormProps) {
       <Input
         label="Password"
         type="password"
-        placeholder="••••••••"
+        placeholder="********"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         error={errors.password}
@@ -92,14 +108,15 @@ export function LoginForm({ onSuccess, onGoRegister }: LoginFormProps) {
         <hr className="flex-1 border-[#CED0D4]" />
       </div>
 
-      <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin}>
-        <img
-          src="https://www.svgrepo.com/show/475656/google-color.svg"
-          alt="Google"
-          className="h-4 w-4"
+      <div className={loading ? "pointer-events-none opacity-60" : ""}>
+        <GoogleLogin
+          width="360"
+          onSuccess={(credentialResponse) =>
+            handleGoogleLogin(credentialResponse.credential)
+          }
+          onError={() => setApiError("Login Google dibatalkan atau gagal.")}
         />
-        Masuk dengan Google
-      </Button>
+      </div>
 
       <p className="text-center text-[13px] text-[#606770]">
         Belum punya akun?{" "}
