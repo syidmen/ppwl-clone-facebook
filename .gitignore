@@ -6,3 +6,5 @@ dist
 *.log
 *.tsbuildinfo
 .DS_Store
+dist-lambda
+lambda-backend.zip
