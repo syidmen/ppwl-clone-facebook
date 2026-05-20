@@ -3,6 +3,7 @@ import { Bell, Home, LogOut, Menu, Moon, Sun, User, X } from "lucide-react";
 import { useAuthStore } from "../../stores/auth.store";
 import { useNotificationStore } from "../../stores/notification.store";
 import { useUIStore } from "../../stores/ui.store";
+import { Avatar } from "../ui/Avatar";
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -37,15 +38,7 @@ export default function Navbar() {
           {
             to: "/profile",
             label: "Profile",
-            icon: user?.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.name}
-                className="w-6 h-6 rounded-full object-cover"
-              />
-            ) : (
-              <User size={20} />
-            ),
+            icon: <Avatar name={user?.name} src={user?.avatarUrl} className="h-6 w-6 text-xs" />,
           },
         ]
       : []),
@@ -159,17 +152,11 @@ export default function Navbar() {
           <div className="relative bg-white dark:bg-gray-900 w-64 h-full shadow-xl p-4 flex flex-col gap-2">
             {user && (
               <div className="flex items-center gap-3 p-3 mb-2 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.name}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                    <User size={20} className="text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                )}
+                <Avatar
+                  name={user.name}
+                  src={user.avatarUrl}
+                  className="h-10 w-10 flex-shrink-0"
+                />
                 <div>
                   <p className="font-semibold text-sm text-gray-900 dark:text-white">
                     {user.name}

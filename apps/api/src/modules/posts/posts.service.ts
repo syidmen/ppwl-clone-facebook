@@ -1,47 +1,77 @@
-import type { Post } from "./posts.types";
 import { prisma } from "../../db";
+import type { Post } from "./posts.types";
 
-export const dummyPosts: Post[] = [
-  {
-    id: "1",
-    content: "Belajar PPWL 🔥",
-    imageUrl: "https://picsum.photos/500",
-    createdAt: new Date().toISOString(),
-
-    author: {
-      id: "u1",
-      name: "Atikoh",
-      avatarUrl: null
-    },
-
-    likeCount: 10,
-    commentCount: 2,
-    likedByMe: false
-  },
-
-  {
-    id: "2",
-    content: "Clone Facebook berjalan 🚀",
-    createdAt: new Date().toISOString(),
-
-    author: {
-      id: "u2",
-      name: "Budi",
-      avatarUrl: null
-    },
-
-    likeCount: 5,
-    commentCount: 1,
-    likedByMe: true
-  }
-];
-
-export const getPostsService = () => {
-  return dummyPosts;
+type PostWithCounts = {
+  id: string;
+  content: string;
+  imageUrl: string | null;
+  createdAt: Date;
+  author: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+  _count: {
+    likes: number;
+    comments: number;
+  };
 };
 
-export const getPostByIdService = (id: string) => {
-  return dummyPosts.find((post) => post.id === id);
+const postInclude = {
+  author: {
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true
+    }
+  },
+  _count: {
+    select: {
+      likes: true,
+      comments: true
+    }
+  }
+};
+
+function toPostDTO(post: PostWithCounts): Post {
+  return {
+    id: post.id,
+    content: post.content,
+    imageUrl: post.imageUrl ?? undefined,
+    createdAt: post.createdAt.toISOString(),
+    author: post.author,
+    likeCount: post._count.likes,
+    commentCount: post._count.comments,
+    likedByMe: false
+  };
+}
+
+function isVideoUrl(value?: string) {
+  return Boolean(
+    value &&
+      (/\.(mp4|mov|webm|avi|mkv)(\?.*)?$/i.test(value) ||
+        /youtube\.com|youtu\.be|vimeo\.com/i.test(value))
+  );
+}
+
+export const getPostsService = async () => {
+  const posts = await prisma.post.findMany({
+    include: postInclude,
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+
+  return posts.map(toPostDTO);
+};
+
+export const getPostByIdService = async (id: string) => {
+  const post = await prisma.post.findUnique({
+    where: { id },
+    include: postInclude
+  });
+
+  return post ? toPostDTO(post) : null;
 };
 
 export const createPostService = async (
@@ -51,54 +81,33 @@ export const createPostService = async (
     imageUrl?: string;
   }
 ) => {
-  const userPosts = dummyPosts.filter(
-    (post) => post.author.id === user.sub
-  );
-
-  if (userPosts.length >= 2) {
-    throw new Error("Maksimal 2 post");
-  }
-
-  if (body.imageUrl?.includes("mp4")) {
-    throw new Error("Video tidak diperbolehkan");
-  }
-
-  const author = await prisma.user.findUnique({
-    where: { id: user.sub },
-    select: {
-      id: true,
-      name: true,
-      avatarUrl: true
+  const userPosts = await prisma.post.count({
+    where: {
+      userId: user.sub
     }
   });
 
-  if (!author) {
-    throw new Error("User tidak ditemukan");
+  if (userPosts >= 2) {
+    throw new Error("Maksimal 2 post");
   }
 
-  const newPost: Post = {
-    id: Date.now().toString(),
-    content: body.content,
-    imageUrl: body.imageUrl,
-    createdAt: new Date().toISOString(),
+  if (isVideoUrl(body.imageUrl)) {
+    throw new Error("Video tidak diperbolehkan");
+  }
 
-    author: {
-      id: author.id,
-      name: author.name,
-      avatarUrl: author.avatarUrl
+  const newPost = await prisma.post.create({
+    data: {
+      userId: user.sub,
+      content: body.content,
+      imageUrl: body.imageUrl?.trim() || null
     },
+    include: postInclude
+  });
 
-    likeCount: 0,
-    commentCount: 0,
-    likedByMe: false
-  };
-
-  dummyPosts.unshift(newPost);
-
-  return newPost;
+  return toPostDTO(newPost);
 };
 
-export const updatePostService = (
+export const updatePostService = async (
   id: string,
   user: any,
   body: {
@@ -106,43 +115,60 @@ export const updatePostService = (
     imageUrl?: string;
   }
 ) => {
-  const post = dummyPosts.find((p) => p.id === id);
+  const post = await prisma.post.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      userId: true
+    }
+  });
 
   if (!post) {
     throw new Error("Post tidak ditemukan");
   }
 
-  if (post.author.id !== user.sub) {
+  if (post.userId !== user.sub) {
     throw new Error("Forbidden");
   }
 
-  if (body.imageUrl?.includes("mp4")) {
+  if (isVideoUrl(body.imageUrl)) {
     throw new Error("Video tidak diperbolehkan");
   }
 
-  post.content = body.content ?? post.content;
-  post.imageUrl = body.imageUrl ?? post.imageUrl;
+  const updatedPost = await prisma.post.update({
+    where: { id },
+    data: {
+      ...(body.content !== undefined ? { content: body.content } : {}),
+      ...(body.imageUrl !== undefined
+        ? { imageUrl: body.imageUrl.trim() || null }
+        : {})
+    },
+    include: postInclude
+  });
 
-  return post;
+  return toPostDTO(updatedPost);
 };
 
-export const deletePostService = (
-  id: string,
-  user: any
-) => {
-  const index = dummyPosts.findIndex(
-    (p) => p.id === id
-  );
+export const deletePostService = async (id: string, user: any) => {
+  const post = await prisma.post.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      userId: true
+    }
+  });
 
-  if (index === -1) {
+  if (!post) {
     throw new Error("Post tidak ditemukan");
   }
 
-  if (dummyPosts[index].author.id !== user.sub) {
+  if (post.userId !== user.sub) {
     throw new Error("Forbidden");
   }
 
-  dummyPosts.splice(index, 1);
+  await prisma.post.delete({
+    where: { id }
+  });
 
   return {
     message: "Post berhasil dihapus"

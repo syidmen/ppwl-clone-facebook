@@ -6,18 +6,18 @@ import {
   updatePostService
 } from "./posts.service";
 
-export const getPostsController = () => {
+export const getPostsController = async () => {
   return {
     success: true,
-    data: getPostsService()
+    data: await getPostsService()
   };
 };
 
-export const getPostByIdController = ({
+export const getPostByIdController = async ({
   params,
   set
 }: any) => {
-  const post = getPostByIdService(params.id);
+  const post = await getPostByIdService(params.id);
 
   if (!post) {
     set.status = 404;
@@ -65,14 +65,14 @@ export const createPostController = async ({
   }
 };
 
-export const updatePostController = ({
+export const updatePostController = async ({
   params,
   authUser,
   body,
   set
 }: any) => {
   try {
-    const post = updatePostService(
+    const post = await updatePostService(
       params.id,
       authUser,
       body
@@ -91,13 +91,13 @@ export const updatePostController = ({
   }
 };
 
-export const deletePostController = ({
+export const deletePostController = async ({
   params,
   authUser,
   set
 }: any) => {
   try {
-    return deletePostService(
+    return await deletePostService(
       params.id,
       authUser
     );

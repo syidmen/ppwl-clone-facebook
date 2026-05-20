@@ -1,49 +1,57 @@
-import { dummyPosts } from "../posts/posts.service";
+import { prisma } from "../../db";
+import { createNotification } from "../notifications/notification.service";
 
-const likedMap = new Map<
-  string,
-  Set<string>
->();
-
-export const toggleLikeService = (
-  postId: string,
-  userId: string
-) => {
-  const post = dummyPosts.find(
-    (p) => p.id === postId
-  );
+export const toggleLikeService = async (postId: string, userId: string) => {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      userId: true
+    }
+  });
 
   if (!post) {
     throw new Error("Post tidak ditemukan");
   }
 
-  if (!likedMap.has(postId)) {
-    likedMap.set(postId, new Set());
-  }
-
-  const likes = likedMap.get(postId)!;
+  const existingLike = await prisma.postLike.findUnique({
+    where: {
+      postId_userId: {
+        postId,
+        userId
+      }
+    }
+  });
 
   let liked = false;
 
-  if (likes.has(userId)) {
-    likes.delete(userId);
-
-    post.likeCount = Math.max(
-      0,
-      post.likeCount - 1
-    );
-
-    liked = false;
+  if (existingLike) {
+    await prisma.postLike.delete({
+      where: {
+        postId_userId: {
+          postId,
+          userId
+        }
+      }
+    });
   } else {
-    likes.add(userId);
-
-    post.likeCount += 1;
+    await prisma.postLike.create({
+      data: {
+        postId,
+        userId
+      }
+    });
 
     liked = true;
+    await createNotification(post.userId, userId, "like", postId);
   }
+
+  const likeCount = await prisma.postLike.count({
+    where: { postId }
+  });
 
   return {
     liked,
-    likeCount: post.likeCount
+    likeCount
   };
 };

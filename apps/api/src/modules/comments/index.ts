@@ -29,6 +29,16 @@ export const commentsRoutes = new Elysia()
       set.status = 401;
       return { message: 'Unauthorized: silakan login terlebih dahulu' };
     }
+
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { id: true }
+    });
+
+    if (!post) {
+      set.status = 404;
+      return { message: 'Post tidak ditemukan' };
+    }
     
     // Validasi maksimal 5 komentar per user
     const commentCount = await prisma.comment.count({

@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { getComments, getCommentsByPostId, createComment } from '../../api/comments.api';
+import { getPostById } from '../../api/posts.api';
 import { useAuthStore } from '../../stores/auth.store';
 import { CommentItem } from '../../components/comment/CommentItem';
 import { Input } from '../../components/ui/Input';
@@ -12,6 +13,7 @@ export const PostDetailPage = () => {
   const [error, setError] = useState('');
   const [newComment, setNewComment] = useState('');
   const [postId, setPostId] = useState('');
+  const [post, setPost] = useState<any | null>(null);
   
   const { isAuthenticated, user } = useAuthStore();
 
@@ -47,6 +49,8 @@ export const PostDetailPage = () => {
         }
 
         setPostId(resolvedPostId);
+        const postResult = await getPostById(resolvedPostId);
+        setPost(postResult.data);
         await fetchComments(resolvedPostId);
       } catch (err: any) {
         setError(err.message);
@@ -75,16 +79,34 @@ export const PostDetailPage = () => {
     <div className="max-w-2xl mx-auto py-6">
       <div className="bg-white text-gray-900 p-4 rounded-lg shadow-sm mb-4 border border-gray-200">
         
-        {/* Mocking Bagian Postingan dari Anggota 4 */}
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600"></div>
+            <div className="w-10 h-10 rounded-full bg-blue-600 overflow-hidden flex items-center justify-center font-bold text-white">
+              {post?.author?.avatarUrl ? (
+                <img
+                  src={post.author.avatarUrl}
+                  alt={post.author.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                post?.author?.name?.charAt(0)?.toUpperCase() ?? 'U'
+              )}
+            </div>
             <div>
-              <p className="font-bold text-[15px]">Anggota Tim Feed</p>
-              <p className="text-[12px] text-gray-500">2 jam yang lalu</p>
+              <p className="font-bold text-[15px]">{post?.author?.name ?? 'Postingan'}</p>
+              <p className="text-[12px] text-gray-500">
+                {post?.createdAt ? new Date(post.createdAt).toLocaleString('id-ID') : ''}
+              </p>
             </div>
           </div>
-          <p className="text-[15px]">Ini adalah *mockup* postingan sementara. Nanti akan diganti secara otomatis saat integrasi dengan pekerjaan Anggota 4.</p>
+          <p className="text-[15px] whitespace-pre-wrap">{post?.content}</p>
+          {post?.imageUrl && (
+            <img
+              src={post.imageUrl}
+              alt="post"
+              className="mt-3 max-h-[420px] w-full rounded-lg object-cover"
+            />
+          )}
           {postId && <p className="mt-2 text-[12px] text-gray-500">Post ID: {postId}</p>}
         </div>
         

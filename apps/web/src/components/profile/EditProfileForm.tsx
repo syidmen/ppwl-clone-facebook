@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
+import { Avatar } from "../ui/Avatar";
 import { updateProfile } from "../../api/profile.api";
 import { useAuthStore } from "../../stores/auth.store";
 
@@ -81,20 +82,12 @@ export function EditProfileForm() {
       )}
 
       <div className="flex items-center gap-4">
-        <div className="h-16 w-16 rounded-full bg-[#E4E6EB] overflow-hidden flex-shrink-0">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="Avatar"
-              className="h-full w-full object-cover"
-              onError={(e) => (e.currentTarget.src = "")}
-            />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-2xl text-[#606770]">
-              {name?.[0]?.toUpperCase() ?? "?"}
-            </div>
-          )}
-        </div>
+        <Avatar
+          name={name}
+          src={avatarUrl}
+          alt="Avatar"
+          className="h-16 w-16 flex-shrink-0 text-2xl"
+        />
         <div className="flex-1">
           <Input
             label="URL Foto Profil"

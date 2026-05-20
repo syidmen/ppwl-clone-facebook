@@ -1,6 +1,7 @@
 import { useAuthStore } from "../../stores/auth.store";
 import { EditProfileForm } from "../../components/profile/EditProfileForm";
 import { AuthGuard } from "../../components/auth/AuthGuard";
+import { Avatar } from "../../components/ui/Avatar";
 
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
@@ -21,17 +22,11 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-full bg-[#E7F0FD] overflow-hidden flex-shrink-0 flex items-center justify-center text-[#1877F2] font-bold">
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt="avatar"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                user?.name?.[0]?.toUpperCase() ?? "?"
-              )}
-            </div>
+            <Avatar
+              name={user?.name}
+              src={user?.avatarUrl}
+              className="h-10 w-10 flex-shrink-0 text-[#1877F2]"
+            />
             <div>
               <p className="text-[15px] font-semibold text-[#1C1E21]">{user?.name}</p>
               <p className="text-[13px] text-[#606770]">@{user?.username}</p>

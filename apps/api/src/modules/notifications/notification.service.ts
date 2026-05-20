@@ -15,6 +15,29 @@ export const createNotification = async (
   });
 
   const action = type === 'like' ? 'menyukai' : 'mengomentari';
+  const message = `${actor?.name ?? 'Seseorang'} ${action} postingan kamu`;
+
+  if (type === 'like' && postId) {
+    const existingNotification = await prisma.notification.findFirst({
+      where: {
+        userId,
+        actorId,
+        type: 'LIKE',
+        postId
+      }
+    });
+
+    if (existingNotification) {
+      return await prisma.notification.update({
+        where: { id: existingNotification.id },
+        data: {
+          message,
+          isRead: false,
+          createdAt: new Date()
+        }
+      });
+    }
+  }
 
   return await prisma.notification.create({
     data: {
@@ -23,7 +46,7 @@ export const createNotification = async (
       type: type.toUpperCase() as 'LIKE' | 'COMMENT',
       postId,
       commentId,
-      message: `${actor?.name ?? 'Seseorang'} ${action} postingan kamu`,
+      message,
       isRead: false
     }
   });

@@ -27,6 +27,10 @@ export const getPosts = async () => {
   return request<{ success: boolean; data: any[] }>("/posts");
 };
 
+export const getPostById = async (postId: string) => {
+  return request<{ success: boolean; data: any }>(`/posts/${postId}`);
+};
+
 export const createPost = async (data: PostInput, token: string) => {
   return request<{ success: boolean; data: any }>("/posts", {
     method: "POST",

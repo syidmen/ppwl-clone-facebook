@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { prisma } from "../db";
 import { jwtConfig, type AuthTokenPayload } from "../utils/token";
 
 export const authMiddleware = new Elysia()
@@ -15,6 +16,16 @@ export const authMiddleware = new Elysia()
     const payload = await jwt.verify(token);
 
     if (!payload || typeof payload.sub !== "string") {
+      set.status = 401;
+      return { authUser: null };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true }
+    });
+
+    if (!user) {
       set.status = 401;
       return { authUser: null };
     }

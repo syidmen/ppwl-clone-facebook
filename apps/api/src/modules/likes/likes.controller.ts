@@ -1,7 +1,7 @@
 import { toggleLikeService }
 from "./likes.service";
 
-export const toggleLikeController = ({
+export const toggleLikeController = async ({
   params,
   authUser,
   set
@@ -16,7 +16,7 @@ export const toggleLikeController = ({
     }
 
     const result =
-      toggleLikeService(
+      await toggleLikeService(
         params.id,
         authUser.sub
       );
