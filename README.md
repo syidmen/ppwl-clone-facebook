@@ -42,11 +42,43 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 ```
 
+Pastikan PostgreSQL sudah berjalan, lalu buat database lokal sesuai `DATABASE_URL` di `apps/api/.env`.
+
+Contoh jika memakai database lokal bernama `ppwl_social_media`:
+
+```bash
+createdb -U postgres ppwl_social_media
+```
+
+Atau lewat `psql`:
+
+```bash
+psql -U postgres -c "CREATE DATABASE ppwl_social_media;"
+```
+
+Contoh `DATABASE_URL` lokal:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppwl_social_media?schema=public"
+```
+
+Jalankan migration untuk membuat tabel:
+
+```bash
+bun run db:migrate
+```
+
 Generate Prisma Client:
 
 ```bash
 bun run db:generate
 ```
+
+Catatan:
+
+- `db:generate` hanya membuat Prisma Client, tidak membuat database/tabel.
+- `db:migrate` menjalankan Prisma migration ke database yang ada di `DATABASE_URL`.
+- Jika `DATABASE_URL` mengarah ke RDS/production, jangan jalankan `db:migrate` tanpa koordinasi tim.
 
 Jalankan development server:
 
