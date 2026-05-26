@@ -7,6 +7,7 @@ import {
   deletePostController,
   getPostByIdController,
   getPostsController,
+  getUploadUrlController,
   updatePostController
 } from "./posts.controller";
 
@@ -22,6 +23,16 @@ export const postsModule = new Elysia({
   app
 
     .use(authMiddleware)
+
+    .post(
+      "/upload-url",
+      getUploadUrlController,
+      {
+        body: t.Object({
+          contentType: t.String()
+        })
+      }
+    )
 
     .post(
       "/",

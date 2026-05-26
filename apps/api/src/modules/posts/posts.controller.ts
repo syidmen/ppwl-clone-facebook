@@ -5,6 +5,7 @@ import {
   getPostsService,
   updatePostService
 } from "./posts.service";
+import { createImageUploadUrl } from "./upload.service";
 
 export const getPostsController = async () => {
   return {
@@ -101,6 +102,38 @@ export const deletePostController = async ({
       params.id,
       authUser
     );
+  } catch (error: any) {
+    set.status = 400;
+
+    return {
+      message: error.message
+    };
+  }
+};
+
+export const getUploadUrlController = async ({
+  authUser,
+  body,
+  set
+}: any) => {
+  try {
+    if (!authUser) {
+      set.status = 401;
+
+      return {
+        message: "Unauthorized"
+      };
+    }
+
+    const data = await createImageUploadUrl(
+      authUser.sub,
+      body.contentType
+    );
+
+    return {
+      success: true,
+      data
+    };
   } catch (error: any) {
     set.status = 400;
 
