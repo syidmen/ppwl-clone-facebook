@@ -10,7 +10,9 @@ const parameterNames = [
   "JWT_SECRET",
   "ADMIN_SECRET_KEY",
   "WEB_ORIGIN",
-  "GOOGLE_CLIENT_ID"
+  "GOOGLE_CLIENT_ID",
+  "S3_IMAGE_BUCKET",
+  "S3_IMAGE_PREFIX"
 ].map((name) => `${parameterPrefix}/${name}`);
 
 let loaded = false;
