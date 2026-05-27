@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "../navbar/navbar";
 import { useUIStore } from "../../stores/ui.store";
 import { useEffect } from "react";
@@ -6,6 +6,8 @@ import WelcomeToast from "../navbar/WelcomeToast";
 
 export default function AppLayout() {
   const { theme } = useUIStore();
+  const location = useLocation();
+  const isFeedPage = location.pathname === "/";
 
   useEffect(() => {
     const root = document.documentElement;
@@ -23,7 +25,13 @@ export default function AppLayout() {
 
       {/* Main content: offset top for desktop navbar, offset bottom for mobile bottom nav */}
       <main className="pt-14 pb-16 md:pb-0 min-h-screen">
-        <Outlet />
+        {isFeedPage ? (
+          <Outlet />
+        ) : (
+          <div className="max-w-2xl mx-auto px-4 py-4">
+            <Outlet />
+          </div>
+        )}
       </main>
     </div>
   );

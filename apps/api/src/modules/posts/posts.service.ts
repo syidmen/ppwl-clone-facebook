@@ -1,6 +1,11 @@
 import { prisma } from "../../db";
 import type { Post } from "./posts.types";
 
+type PostBody = {
+  content?: string;
+  imageUrl?: string;
+};
+
 type PostWithCounts = {
   id: string;
   content: string;
@@ -33,6 +38,19 @@ const postInclude = {
   }
 };
 
+function normalizeImageUrl(imageUrl?: string) {
+  const value = imageUrl?.trim();
+  return value ? value : null;
+}
+
+function isVideoUrl(value?: string | null) {
+  return Boolean(
+    value &&
+      (/\.(mp4|mov|webm|avi|mkv)(\?.*)?$/i.test(value) ||
+        /youtube\.com|youtu\.be|vimeo\.com/i.test(value))
+  );
+}
+
 function toPostDTO(post: PostWithCounts): Post {
   return {
     id: post.id,
@@ -44,14 +62,6 @@ function toPostDTO(post: PostWithCounts): Post {
     commentCount: post._count.comments,
     likedByMe: false
   };
-}
-
-function isVideoUrl(value?: string) {
-  return Boolean(
-    value &&
-      (/\.(mp4|mov|webm|avi|mkv)(\?.*)?$/i.test(value) ||
-        /youtube\.com|youtu\.be|vimeo\.com/i.test(value))
-  );
 }
 
 export const getPostsService = async () => {
@@ -81,88 +91,92 @@ export const createPostService = async (
     imageUrl?: string;
   }
 ) => {
-  const userPosts = await prisma.post.count({
+  const content = body.content.trim();
+  const imageUrl = normalizeImageUrl(body.imageUrl);
+
+  if (!content) {
+    throw new Error("Konten post wajib diisi");
+  }
+
+  if (isVideoUrl(imageUrl)) {
+    throw new Error("Video tidak diperbolehkan");
+  }
+
+  const postCount = await prisma.post.count({
     where: {
       userId: user.sub
     }
   });
 
-  if (userPosts >= 2) {
+  if (postCount >= 2) {
     throw new Error("Maksimal 2 post");
   }
 
-  if (body.imageUrl && isVideoUrl(body.imageUrl)) {
-    throw new Error("Video tidak diperbolehkan");
-  }
-
-  const newPost = await prisma.post.create({
+  const post = await prisma.post.create({
     data: {
       userId: user.sub,
-      content: body.content,
-      imageUrl: body.imageUrl?.trim() || null
+      content,
+      imageUrl
     },
     include: postInclude
   });
 
-  return toPostDTO(newPost);
+  return toPostDTO(post);
 };
 
 export const updatePostService = async (
   id: string,
   user: any,
-  body: {
-    content?: string;
-    imageUrl?: string;
-  }
+  body: PostBody
 ) => {
-  const post = await prisma.post.findUnique({
+  const existingPost = await prisma.post.findUnique({
     where: { id },
     select: {
-      id: true,
       userId: true
     }
   });
 
-  if (!post) {
+  if (!existingPost) {
     throw new Error("Post tidak ditemukan");
   }
 
-  if (post.userId !== user.sub) {
+  if (existingPost.userId !== user.sub) {
     throw new Error("Forbidden");
   }
 
-  if (body.imageUrl && isVideoUrl(body.imageUrl)) {
+  const imageUrl = normalizeImageUrl(body.imageUrl);
+
+  if (isVideoUrl(imageUrl)) {
     throw new Error("Video tidak diperbolehkan");
   }
 
-  const updatedPost = await prisma.post.update({
+  const content = body.content?.trim();
+
+  const post = await prisma.post.update({
     where: { id },
     data: {
-      ...(body.content !== undefined ? { content: body.content } : {}),
-      ...(body.imageUrl !== undefined
-        ? { imageUrl: body.imageUrl.trim() || null }
-        : {})
+      ...(content ? { content } : {}),
+      ...(body.imageUrl !== undefined ? { imageUrl } : {})
     },
     include: postInclude
   });
 
-  return toPostDTO(updatedPost);
+  return toPostDTO(post);
 };
 
 export const deletePostService = async (id: string, user: any) => {
-  const post = await prisma.post.findUnique({
+  const existingPost = await prisma.post.findUnique({
     where: { id },
     select: {
-      id: true,
       userId: true
     }
   });
 
-  if (!post) {
+  if (!existingPost) {
     throw new Error("Post tidak ditemukan");
   }
 
-  if (post.userId !== user.sub) {
+  if (existingPost.userId !== user.sub) {
     throw new Error("Forbidden");
   }
 

@@ -5,6 +5,7 @@ import {
   deletePostController,
   getPostByIdController,
   getPostsController,
+  getUploadUrlController,
   updatePostController
 } from "./posts.controller";
 
@@ -12,13 +13,23 @@ export const postsModule = new Elysia({
   prefix: "/posts"
 })
   .get("/", getPostsController)
-  
+
   .get("/:id", getPostByIdController)
-  
+
   .group("", (app) =>
     app
       .use(authMiddleware)
-      
+
+      .post(
+        "/upload-url",
+        getUploadUrlController,
+        {
+          body: t.Object({
+            contentType: t.String()
+          })
+        }
+      )
+
       .post(
         "/",
         createPostController,
@@ -27,20 +38,12 @@ export const postsModule = new Elysia({
             content: t.String({
               minLength: 1
             }),
-            image: t.Optional(
-              t.File() // Mengizinkan upload file biner gambar lewat FormData
-            )
+            imageUrl: t.Optional(t.String())
           })
         }
       )
-      
-      .patch(
-        "/:id",
-        updatePostController
-      )
-      
-      .delete(
-        "/:id",
-        deletePostController
-      )
+
+      .patch("/:id", updatePostController)
+
+      .delete("/:id", deletePostController)
   );
