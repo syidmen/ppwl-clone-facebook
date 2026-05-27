@@ -91,7 +91,7 @@ export const createPostService = async (
     throw new Error("Maksimal 2 post");
   }
 
-  if (isVideoUrl(body.imageUrl)) {
+  if (body.imageUrl && isVideoUrl(body.imageUrl)) {
     throw new Error("Video tidak diperbolehkan");
   }
 
@@ -131,7 +131,7 @@ export const updatePostService = async (
     throw new Error("Forbidden");
   }
 
-  if (isVideoUrl(body.imageUrl)) {
+  if (body.imageUrl && isVideoUrl(body.imageUrl)) {
     throw new Error("Video tidak diperbolehkan");
   }
 

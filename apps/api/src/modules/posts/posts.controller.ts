@@ -21,7 +21,6 @@ export const getPostByIdController = async ({
 
   if (!post) {
     set.status = 404;
-
     return {
       message: "Post tidak ditemukan"
     };
@@ -41,15 +40,42 @@ export const createPostController = async ({
   try {
     if (!authUser) {
       set.status = 401;
-
       return {
         message: "Unauthorized"
       };
     }
 
+    // 1. Ambil data teks murni dan file dari bodi FormData
+    const contentText = body.content;
+    const imageFile = body.image; 
+
+    let finalImageUrl = null;
+
+    // 2. Jika user mengunggah file gambar, simpan ke folder 'uploads' lokal server
+    if (imageFile && imageFile instanceof File) {
+      const bytes = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      
+      // Mengamankan nama file dari karakter spasi
+      const fileName = `${Date.now()}_${imageFile.name.replace(/\s+/g, "_")}`;
+      const filePath = `./uploads/${fileName}`; 
+      
+      // Menulis biner ke storage server menggunakan Bun runtime
+      await Bun.write(filePath, buffer);
+      
+      // Alamat path/URL string yang akan disimpan di database
+      finalImageUrl = `/uploads/${fileName}`;
+    }
+
+    // 3. Susun data yang sudah bersih agar aman diterima oleh Service database Anda
+    const cleanPostData = {
+      content: contentText,   // Sesuaikan jika service database Anda meminta key 'text'
+      imageUrl: finalImageUrl // Sesuaikan jika service database Anda meminta key 'image'
+    };
+
     const post = await createPostService(
       authUser,
-      body
+      cleanPostData
     );
 
     return {
@@ -58,7 +84,6 @@ export const createPostController = async ({
     };
   } catch (error: any) {
     set.status = 400;
-
     return {
       message: error.message
     };
@@ -84,7 +109,6 @@ export const updatePostController = async ({
     };
   } catch (error: any) {
     set.status = 400;
-
     return {
       message: error.message
     };
@@ -103,7 +127,6 @@ export const deletePostController = async ({
     );
   } catch (error: any) {
     set.status = 400;
-
     return {
       message: error.message
     };

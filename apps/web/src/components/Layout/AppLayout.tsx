@@ -23,9 +23,7 @@ export default function AppLayout() {
 
       {/* Main content: offset top for desktop navbar, offset bottom for mobile bottom nav */}
       <main className="pt-14 pb-16 md:pb-0 min-h-screen">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );
