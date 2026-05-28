@@ -16,7 +16,7 @@ export const commentsRoutes = new Elysia()
     return await prisma.comment.findMany({
       where: { postId: id },
       include: {
-        author: { select: { name: true } } 
+        author: { select: { name: true, avatarUrl: true } } 
       },
       orderBy: { createdAt: 'asc' } 
     });
@@ -55,6 +55,9 @@ export const commentsRoutes = new Elysia()
         content: body.content,
         postId: id,
         userId: authUser.sub
+      },
+      include: {
+        author: { select: { name: true, avatarUrl: true } }
       }
     });
 

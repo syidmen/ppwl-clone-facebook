@@ -1,9 +1,23 @@
-import { useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { createPost, deletePost, getPosts, updatePost } from "../../api/posts.api";
 import PostForm from "../../components/post/PostForm";
 import PostCard from "../../components/post/PostCard";
+import { useAuthStore } from "../../stores/auth.store";
+import photoIcon from "../../assets/icons/photo.webp";
+import defaultProfile from "../../assets/icons/default-profile.png";
 
-export type Author = { name: string; avatar: string };
-export type CommentType = { id: number; author: Author; text: string; time: string };
+export type Author = {
+  name: string;
+  avatar: string;
+};
+
+export type CommentType = {
+  id: number;
+  author: Author;
+  text: string;
+  time: string;
+};
+
 export type PostType = {
   id: string;
   author: Author;
@@ -12,148 +26,93 @@ export type PostType = {
   text?: string;
   image?: string;
   likes: number;
-  reactions: string[];
+  commentCount?: number;
   comments: CommentType[];
-  shares: number;
 };
 
-// Data pengguna yang sedang aktif (Simulasi Login)
-const CURRENT_USER: Author = {
-  name: "Atikoh Ika",
-  avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
-};
+const INITIAL_POSTS: PostType[] = [];
 
-// Data Cerita / Stories Dummy Lengkap (dari Kode 2)
-const STORIES = [
-  { name: "Riska Riska",   img: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=200&auto=format&fit=crop&q=80" },
-  { name: "Tika Tri",     img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80" },
-  { name: "Kevin",        img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80" },
-  { name: "Muhajir",      img: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&auto=format&fit=crop&q=80" },
-  { name: "Angga Saputra",img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80" },
-  { name: "Welah Lediez", img: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&auto=format&fit=crop&q=80" },
-  { name: "Serlina",      img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" },
-  { name: "Fikri",        img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80" },
-];
+function formatRelativeTime(value?: string) {
+  if (!value) return "Baru saja";
 
-// Data Postingan Awal di Beranda (Lengkap dari Kode 2)
-const INITIAL_POSTS: PostType[] = [
-  {
-    id: "post1",
+  const created = new Date(value).getTime();
+  const diffMs = Date.now() - created;
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (Number.isNaN(created)) return "Baru saja";
+  if (diffMs < minute) return "Baru saja";
+  if (diffMs < hour) return `${Math.floor(diffMs / minute)} menit`;
+  if (diffMs < day) return `${Math.floor(diffMs / hour)} jam`;
+  if (diffMs < 7 * day) return `${Math.floor(diffMs / day)} hari`;
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
+function mapApiPost(post: any): PostType {
+  return {
+    id: post.id,
     author: {
-      name: "Erinn",
-      avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80",
+      name: post.author?.name ?? "User",
+      avatar: post.author?.avatarUrl || defaultProfile
     },
-    time: "22 jam",
+    time: formatRelativeTime(post.createdAt),
     privacy: "public",
-    text: "Jastip dimsum untuk isok guyss ii 🔥 cuss di pesan guyss ... banyak pilihannya loh, ada yang kukus ada yang goreng, harga terjangkau kualitas bintang lima! 😋",
-    image: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800&auto=format&fit=crop&q=80",
-    likes: 42,
-    reactions: ["👍", "❤️", "😮"],
-    comments: [],
-    shares: 2,
-  },
-  {
-    id: "post2",
-    author: {
-      name: "Asiseh",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-    },
-    time: "1 hari",
-    privacy: "public",
-    text: "Asiseh sedang di 📍 Pontianak, Kalimantan Barat. Makan siang dulu yuk sebelum lanjut kerja! Warung soto langganan udah buka 🍜",
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80",
-    likes: 87,
-    reactions: ["👍", "❤️", "😍"],
-    comments: [],
-    shares: 5,
-  },
-];
-
-function StoriesRow() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const CARD_W = 120;
-
-  const scrollRight = () => {
-    scrollRef.current?.scrollBy({ left: CARD_W * 3, behavior: "smooth" });
+    text: post.content,
+    image: post.imageUrl,
+    likes: post.likeCount ?? 0,
+    commentCount: post.commentCount ?? 0,
+    comments: []
   };
+}
 
+function FeedSkeletonCard({ withImage = true }: { withImage?: boolean }) {
   return (
-    <div style={{ position: "relative", marginBottom: 16, overflow: "hidden" }}>
-      <div
-        ref={scrollRef}
-        style={{
-          display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none",
-          msOverflowStyle: "none", paddingBottom: 4,
-        }}
-      >
-        {/* Tombol Buat Cerita Sendiri */}
-        <div 
-          style={{ width: 112, height: 200, borderRadius: 10, background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.1)", overflow: "hidden", position: "relative", cursor: "pointer", flexShrink: 0 }}
-          className="group"
-        >
-          <div style={{ width: "100%", height: 150, overflow: "hidden" }}>
-            <img 
-              src={CURRENT_USER.avatar} 
-              style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s ease" }} 
-              className="group-hover:scale-105"
-              alt="" 
-            />
-          </div>
-          <div style={{ background: "#1877f2", width: 32, height: 32, borderRadius: "50%", border: "4px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: "bold", position: "absolute", bottom: 34, left: "50%", transform: "translateX(-50%)", fontSize: 20 }}>+</div>
-          <div style={{ position: "absolute", bottom: 8, width: "100%", textAlign: "center", fontSize: 13, fontWeight: 600, color: "#050505" }}>Buat cerita</div>
+    <article className="mb-4 overflow-hidden rounded-lg bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.16)]">
+      <div className="flex items-center gap-3">
+        <div className="fb-skeleton h-12 w-12 rounded-full" />
+        <div className="flex-1">
+          <div className="fb-skeleton h-4 w-28 rounded-full" />
+          <div className="fb-skeleton mt-2 h-3 w-36 rounded-full" />
         </div>
-
-        {/* Daftar Cerita Teman dengan Animasi Zoom ala Facebook */}
-        {STORIES.map((story, idx) => (
-          <div
-            key={idx}
-            style={{
-              width: 112, height: 200, borderRadius: 10,
-              position: "relative", cursor: "pointer",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.15)", flexShrink: 0,
-              overflow: "hidden"
-            }}
-            className="group"
-          >
-            <img 
-              src={story.img} 
-              style={{ 
-                width: "100%", height: "100%", objectFit: "cover", 
-                transition: "transform 0.4s ease" 
-              }}
-              className="group-hover:scale-105"
-              alt=""
-            />
-            <div 
-              style={{ 
-                position: "absolute", inset: 0, borderRadius: 10, 
-                background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%)",
-                transition: "background 0.3s ease"
-              }} 
-              className="group-hover:bg-black/20"
-            />
-            <img
-              src={story.img}
-              style={{ width: 36, height: 36, borderRadius: "50%", position: "absolute", top: 8, left: 8, border: "3px solid #1877f2", objectFit: "cover", zIndex: 1 }}
-              alt=""
-            />
-            <span style={{ position: "absolute", bottom: 8, left: 8, right: 8, color: "#fff", fontSize: 12, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)", zIndex: 1 }}>
-              {story.name}
-            </span>
-          </div>
-        ))}
       </div>
+      <div className="mt-5 space-y-2">
+        <div className="fb-skeleton h-3 w-full rounded-full" />
+        <div className="fb-skeleton h-3 w-4/5 rounded-full" />
+      </div>
+      {withImage && <div className="fb-skeleton mt-5 h-[260px] rounded-md" />}
+      <div className="mt-5 flex justify-around">
+        <div className="fb-skeleton h-3 w-20 rounded-full" />
+        <div className="fb-skeleton h-3 w-20 rounded-full" />
+        <div className="fb-skeleton h-3 w-20 rounded-full" />
+      </div>
+    </article>
+  );
+}
 
+function DeleteToast({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed bottom-5 left-5 z-[60] flex w-[min(396px,calc(100vw-40px))] items-center gap-4 rounded-md bg-[#242526] px-5 py-4 text-white shadow-[0_6px_18px_rgba(0,0,0,0.28)]">
+      <div className="flex-1 text-[15px] leading-5">
+        Postingan Anda telah dihapus
+      </div>
       <button
-        onClick={scrollRight}
-        style={{
-          position: "absolute", right: 8, top: "50%", transform: "translateY(-60%)", zIndex: 10,
-          width: 36, height: 36, borderRadius: "50%", background: "#fff", border: "none",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.3)", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, color: "#050505",
-        }}
+        type="button"
+        onClick={onClose}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+        aria-label="Tutup notifikasi"
       >
-        ›
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M19.884 5.884a1.25 1.25 0 0 0-1.768-1.768L12 10.232 5.884 4.116a1.25 1.25 0 1 0-1.768 1.768L10.232 12l-6.116 6.116a1.25 1.25 0 0 0 1.768 1.768L12 13.768l6.116 6.116a1.25 1.25 0 0 0 1.768-1.768L13.768 12l6.116-6.116z"
+            fill="currentColor"
+          />
+        </svg>
       </button>
     </div>
   );
@@ -162,167 +121,169 @@ function StoriesRow() {
 export default function FeedPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [posts, setPosts] = useState<PostType[]>(INITIAL_POSTS);
+  const [isFeedLoading, setIsFeedLoading] = useState(true);
+  const [showDeleteToast, setShowDeleteToast] = useState(false);
+  const { user, token, isAuthenticated } = useAuthStore();
 
-  // 1. SIMULASI CREATE POST MURNI LOKAL (Bypass API Backend seperti Kode 1)
-  const handleCreatePost = async (postText: string, imageFile: File | null) => {
-    // Membuat URL blob lokal tiruan jika user memilih gambar di komputer mereka
-    let localImageUrl = undefined;
-    if (imageFile) {
-      localImageUrl = URL.createObjectURL(imageFile);
-    }
+  const currentUser: Author | null = user
+    ? {
+        name: user.name,
+        avatar:
+          user.avatarUrl ??
+          defaultProfile
+      }
+    : null;
 
-    // Merakit objek postingan tiruan yang sesuai dengan format UI React
-    const newMockPost: PostType = {
-      id: `mock-${Date.now()}`, // ID Unik sementara berbasis waktu komputer
-      author: CURRENT_USER,
-      time: "Baru saja",
-      privacy: "public",
-      text: postText,
-      image: localImageUrl,
-      likes: 0,
-      reactions: [],
-      comments: [],
-      shares: 0
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const result = await getPosts();
+        setPosts(result.data.map(mapApiPost));
+      } catch {
+        setPosts(INITIAL_POSTS);
+      } finally {
+        setIsFeedLoading(false);
+      }
     };
 
-    // Suntik langsung ke State layar lokal agar langsung muncul di baris paling atas
-    setPosts([newMockPost, ...posts]);
+    fetchPosts();
+  }, []);
+
+  const handleCreatePost = async (postText: string, imageFile: File | null) => {
+    if (!token || !currentUser) {
+      alert("Silakan login terlebih dahulu untuk membuat postingan.");
+      setIsFormOpen(false);
+      return;
+    }
+
+    const image = imageFile ? URL.createObjectURL(imageFile) : undefined;
+    const result = await createPost({ content: postText, imageUrl: image }, token);
+
+    const newPost = mapApiPost(result.data);
+    const displayPost: PostType = {
+      ...newPost,
+      author: currentUser,
+      image: image ?? newPost.image,
+      comments: []
+    };
+
+    setPosts((currentPosts) => [displayPost, ...currentPosts]);
     setIsFormOpen(false);
   };
 
-  // 2. SIMULASI UPDATE POST MURNI LOKAL
-  const handleUpdateState = (id: string, newText: string) => {
-    setPosts(posts.map(p => p.id === id ? { ...p, text: newText } : p));
+  const handleUpdatePost = async (id: string, newText: string, image?: string) => {
+    if (!token) {
+      alert("Silakan login terlebih dahulu.");
+      return;
+    }
+
+    await updatePost(id, { content: newText, imageUrl: image ?? "" }, token);
+    setPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.id === id ? { ...post, text: newText, image } : post
+      )
+    );
   };
 
-  // 3. SIMULASI DELETE POST MURNI LOKAL
-  const handleDeleteState = (id: string) => {
-    setPosts(posts.filter(p => p.id !== id));
+  const handleDeletePost = async (id: string) => {
+    if (!token) {
+      alert("Silakan login terlebih dahulu.");
+      return;
+    }
+
+    await deletePost(id, token);
+    setPosts((currentPosts) => currentPosts.filter((post) => post.id !== id));
+    setShowDeleteToast(true);
+  };
+
+  useEffect(() => {
+    if (!showDeleteToast) return;
+
+    const timer = window.setTimeout(() => setShowDeleteToast(false), 5200);
+    return () => window.clearTimeout(timer);
+  }, [showDeleteToast]);
+
+  const handleOpenPostForm = () => {
+    if (!isAuthenticated || !currentUser) {
+      alert("Silakan login terlebih dahulu untuk membuat postingan.");
+      return;
+    }
+
+    setIsFormOpen(true);
   };
 
   return (
-    <div style={{ background: "#f0f2f5", color: "#050505", minHeight: "100vh", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}>
-      <div style={{ display: "flex", maxWidth: 1250, margin: "0 auto", padding: "16px 8px", gap: 16, alignItems: "flex-start" }}>
-
-        {/* ── Kolom Kiri (UI Menu Lengkap dari Kode 2) ── */}
-        <div style={{ width: 260, flexShrink: 0, position: "sticky", top: 72, maxHeight: "calc(100vh - 80px)", overflowY: "auto" }} className="hidden lg:block">
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 8, cursor: "pointer" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#e4e6eb")}
-            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-          >
-            <img src={CURRENT_USER.avatar} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} alt="" />
-            <span style={{ fontWeight: 600, fontSize: 15 }}>{CURRENT_USER.name}</span>
-          </div>
-
-          {[
-            { name: "Meta AI", icon: "🔮" },
-            { name: "Teman", icon: "👥" },
-            { name: "Kenangan", icon: "⏳" },
-            { name: "Tersimpan", icon: "🔖" },
-            { name: "Grup", icon: "👨‍👩‍👧‍👦" },
-            { name: "Video", icon: "📺" },
-            { name: "Kabar", icon: "📰" },
-            { name: "Acara", icon: "📅" },
-            { name: "Pengelola Iklan", icon: "📊" }
-          ].map(menu => (
-            <div
-              key={menu.name}
-              style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 8, cursor: "pointer" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#e4e6eb")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+    <div className="min-h-screen bg-[#f0f2f5] text-[#050505]">
+      <div className="mx-auto w-full max-w-[600px] px-3 py-4 sm:px-0">
+        <div className="mb-4 rounded-lg bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.22)]">
+          <div className="flex items-center gap-3">
+            {currentUser ? (
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                className="h-[38px] w-[38px] rounded-full object-cover"
+              />
+            ) : (
+              <img
+                src={defaultProfile}
+                alt="Profil"
+                className="h-[38px] w-[38px] rounded-full object-cover"
+              />
+            )}
+            <button
+              type="button"
+              onClick={handleOpenPostForm}
+              className="flex-1 rounded-full bg-[#f0f2f5] px-4 py-2 text-left text-[15px] font-medium text-[#65676b] hover:bg-[#e4e6eb]"
             >
-              <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>{menu.icon}</span>
-              <span style={{ fontWeight: 500, fontSize: 15 }}>{menu.name}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Kolom Tengah (Feed Utama dari Kode 2 dengan Tombol Aktif) ── */}
-        <div style={{ flex: 1, minWidth: 0, maxWidth: 590, margin: "0 auto" }}>
-          
-          {/* Kotak Pemicu Modal Buat Postingan */}
-          <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.1)", padding: "12px 16px", marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <img src={CURRENT_USER.avatar} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} alt="" />
-              <div
-                onClick={() => setIsFormOpen(true)}
-                style={{ flex: 1, background: "#f0f2f5", borderRadius: 20, padding: "10px 16px", fontSize: 15, cursor: "pointer", color: "#65676b", fontWeight: 500 }}
-              >
-                Apa yang Anda pikirkan, {CURRENT_USER.name.split(" ")[0]}?
-              </div>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <span onClick={() => setIsFormOpen(true)} style={{ color: "#f3425f", fontSize: 22, cursor: "pointer" }}>📹</span>
-                <span onClick={() => setIsFormOpen(true)} style={{ color: "#45bd62", fontSize: 22, cursor: "pointer" }}>🖼️</span>
-                <span onClick={() => setIsFormOpen(true)} style={{ color: "#f7b928", fontSize: 22, cursor: "pointer" }}>😊</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Baris Cerita */}
-          <StoriesRow />
-
-          {/* Menampilkan Daftar Postingan */}
-          {posts.map(post => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
-              onEditPost={handleUpdateState}
-              onDeletePost={handleDeleteState}
-            />
-          ))}
-        </div>
-
-        {/* ── Kolom Kanan (Kontak Aktif & Ultah dari Kode 2) ── */}
-        <div style={{ width: 260, flexShrink: 0, position: "sticky", top: 72, maxHeight: "calc(100vh - 80px)", overflowY: "auto" }} className="hidden lg:block">
-          <div style={{ paddingBottom: 16, borderBottom: "1px solid #ced0d4", marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, color: "#65676b", marginBottom: 10, fontSize: 16 }}>Ulang Tahun</div>
-            <div style={{ display: "flex", gap: 8, fontSize: 14 }}>
-              <span>🎁</span>
-              <span><strong>N Fazilaa</strong> berulang tahun hari ini.</span>
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 600, color: "#65676b", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 16 }}>
-              <span>Kontak</span>
-              <div style={{ display: "flex", gap: 12, cursor: "pointer" }}><span>🔍</span><span>•••</span></div>
-            </div>
-
-            {[
-              { name: "Riska Riska",         active: true  },
-              { name: "Serlina Ramadhani",   active: false },
-              { name: "Muhajir",             active: true  },
-              { name: "Fikri",               active: false },
-            ].map((contact, idx) => (
-              <div
-                key={idx}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px", cursor: "pointer", borderRadius: 8 }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#e4e6eb")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-              >
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#ced0d4", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 13, color: "#fff", fontWeight: 700 }}>{contact.name[0]}</span>
-                  {contact.active && (
-                    <div style={{ width: 10, height: 10, background: "#31a24c", borderRadius: "50%", position: "absolute", bottom: -1, right: -1, border: "2px solid #fff" }} />
-                  )}
-                </div>
-                <span style={{ fontSize: 15, fontWeight: 500 }}>{contact.name}</span>
-              </div>
-            ))}
+              {currentUser
+                ? `Apa yang Anda pikirkan, ${currentUser.name.split(" ")[0]}?`
+                : "Login untuk membuat postingan"}
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenPostForm}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-[#f0f2f5]"
+              aria-label="Tambah foto"
+            >
+              <img src={photoIcon} alt="" className="h-6 w-6 object-contain" />
+            </button>
           </div>
         </div>
 
+        {isFeedLoading ? (
+          <>
+            <FeedSkeletonCard withImage={false} />
+            <FeedSkeletonCard />
+            <FeedSkeletonCard />
+          </>
+        ) : (
+          posts.length > 0 ? (
+            posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                currentUser={currentUser}
+                onEditPost={handleUpdatePost}
+                onDeletePost={handleDeletePost}
+              />
+            ))
+          ) : (
+            <div className="rounded-lg bg-white px-4 py-8 text-center text-sm text-[#65676b] shadow-[0_1px_2px_rgba(0,0,0,0.16)]">
+              Belum ada postingan.
+            </div>
+          )
+        )}
       </div>
 
-      {/* Komponen Modal Input PopUp Status */}
-      {isFormOpen && (
+      {isFormOpen && currentUser && (
         <PostForm
-          currentUser={CURRENT_USER}
+          currentUser={currentUser}
           onClose={() => setIsFormOpen(false)}
           onSavePost={handleCreatePost}
         />
       )}
+
+      {showDeleteToast && <DeleteToast onClose={() => setShowDeleteToast(false)} />}
     </div>
   );
 }

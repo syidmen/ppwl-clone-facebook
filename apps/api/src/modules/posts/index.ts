@@ -35,9 +35,7 @@ export const postsModule = new Elysia({
         createPostController,
         {
           body: t.Object({
-            content: t.String({
-              minLength: 1
-            }),
+            content: t.String(),
             imageUrl: t.Optional(t.String())
           })
         }

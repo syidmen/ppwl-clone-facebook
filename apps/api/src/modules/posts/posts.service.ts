@@ -94,8 +94,8 @@ export const createPostService = async (
   const content = body.content.trim();
   const imageUrl = normalizeImageUrl(body.imageUrl);
 
-  if (!content) {
-    throw new Error("Konten post wajib diisi");
+  if (!content && !imageUrl) {
+    throw new Error("Post wajib berisi teks atau gambar");
   }
 
   if (isVideoUrl(imageUrl)) {

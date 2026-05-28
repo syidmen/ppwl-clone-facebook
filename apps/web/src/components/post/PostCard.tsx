@@ -1,405 +1,1027 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import type { Author, CommentType, PostType } from "../../pages/feed/FeedPage";
+import { createComment, getCommentsByPostId } from "../../api/comments.api";
+import { toggleLike } from "../../api/posts.api";
+import { useAuthStore } from "../../stores/auth.store";
+import likeIcon from "../../assets/icons/likes.webp";
+import defaultProfile from "../../assets/icons/default-profile.png";
+import photoIcon from "../../assets/icons/photo.webp";
+import noCommentIcon from "../../assets/icons/no-comment.png";
+import sendActiveIcon from "../../assets/icons/kirim-active.png";
+import sendInactiveIcon from "../../assets/icons/kirim-unactive.png";
+import likeActiveIcon from "../../assets/icons/likes-active.png";
+import facebookIcon from "../../assets/icons/facebook.svg";
 
-const REACTIONS_LIST = [
-  { emoji: "👍", label: "Suka",  color: "#1877f2" },
-  { emoji: "❤️", label: "Super", color: "#f33e5b" },
-  { emoji: "😘", label: "Haha",  color: "#f7b928" },
-  { emoji: "😄", label: "Haha",  color: "#f7b928" },
-  { emoji: "😮", label: "Wow",   color: "#f7b928" },
-  { emoji: "😢", label: "Sedih", color: "#f7b928" },
-  { emoji: "😡", label: "Marah", color: "#e1582b" },
-];
+const COLLAPSED_TEXT_LENGTH = 80;
+const FACEBOOK_SPRITE_URL =
+  "https://static.xx.fbcdn.net/rsrc.php/yp/r/twpm7Tz4xLN.webp?_nc_eui2=AeFKu87uUTIS5DCkQzxB6mIgrwmeb3wupdevCZ5vfC6l1xWNHPco06tgQEXrjEJpO5MY5ssoWvsjGg6X999lYsH_";
 
-function formatCount(n: number): string {
-  if (n >= 1000) return (n / 1000).toFixed(1).replace(".", ",") + " rb";
-  return String(n);
-}
-
-type Author = { name: string; avatar: string };
-export type PostType = {
-  id: string; author: Author; time: string; privacy: string;
-  text?: string; image?: string; likes: number;
-  reactions: string[]; comments: any[]; shares: number;
-};
-type CommentItem = { id: number; author: Author; text: string; time: string };
-
-const CURRENT_USER: Author = {
-  name: "Atikoh Ika",
-  avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
-};
-
-// ── Ikon aksi — persis Facebook (gambar 2) ───────────────────
-function IconThumbOutline({ color = "#65676b" }: { color?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>
-      <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
-    </svg>
-  );
-}
-
-function IconComment({ color = "#65676b" }: { color?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2.5C7.6 2.5 2.5 7.1 2.5 12.8c0 2.1.7 4.1 1.9 5.7L3 25l6.7-1.7c1.3.7 2.8 1.2 4.4 1.2 6.4 0 11.5-4.6 11.5-10.3S20.4 2.5 14 2.5z"/>
-    </svg>
-  );
-}
-
-function IconShare({ color = "#65676b" }: { color?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 2L11 13"/>
-      <path d="M22 2L15 22 11 13 2 9l20-7z"/>
-    </svg>
-  );
-}
-
-// ── Lingkaran reaksi di pojok kanan ──────────────────────────
-// 👍 SAJA = lingkaran biru + thumbs up SVG putih (seperti gambar)
-// Emoji lainnya = tampil apa adanya sebagai emoji besar
-function ReactionBadge({ reaction }: { reaction: typeof REACTIONS_LIST[0] }) {
-  if (reaction.emoji === "👍") {
-    return (
-      <div style={{
-        width: 26, height: 26, borderRadius: "50%",
-        background: "#1877f2",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-      }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
-          <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
-        </svg>
-      </div>
-    );
-  }
-  return <span style={{ fontSize: 22, lineHeight: 1 }}>{reaction.emoji}</span>;
-}
-
-// ── Tombol suka (kiri bawah) — tampilkan ikon sesuai reaksi ──
-function SukaIcon({ reaction, liked }: { reaction: typeof REACTIONS_LIST[0]; liked: boolean }) {
-  if (!liked) return <IconThumbOutline color="#65676b" />;
-  if (reaction.emoji === "👍") {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill={reaction.color}>
-        <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
-      </svg>
-    );
-  }
-  if (reaction.emoji === "❤️") {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill={reaction.color}>
-        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-      </svg>
-    );
-  }
-  return <span style={{ fontSize: 20, lineHeight: 1 }}>{reaction.emoji}</span>;
-}
-
-// ── Dropdown menu icons ───────────────────────────────────────
-const MenuIcons = {
-  save:     <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>,
-  edit:     <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>,
-  audience: <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>,
-  notif:    <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>,
-  translate:<svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="m12.87 15.07-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7 1.62-4.33L19.12 17h-3.24z"/></svg>,
-  info:     <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>,
-  date:     <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>,
-  archive:  <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/></svg>,
-  trash:    <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>,
-  hide:     <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>,
-  report:   <svg viewBox="0 0 24 24" width="20" height="20" fill="#050505"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>,
-};
-
-function MenuItem({ icon, label, sublabel, onClick }: { icon: React.ReactNode; label: string; sublabel?: string; onClick?: () => void }) {
-  return (
-    <div onClick={onClick} style={{ display:"flex", alignItems:"center", gap:12, padding:"8px 16px", cursor:"pointer" }}
-      onMouseEnter={e=>(e.currentTarget.style.background="#f2f2f2")}
-      onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-      <div style={{ width:36, height:36, borderRadius:"50%", background:"#e4e6eb", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{icon}</div>
-      <div>
-        <div style={{ fontWeight:600, fontSize:15, color:"#050505" }}>{label}</div>
-        {sublabel && <div style={{ fontSize:13, color:"#65676b" }}>{sublabel}</div>}
-      </div>
-    </div>
-  );
-}
-function Divider() { return <div style={{ height:1, background:"#e4e6eb", margin:"4px 0" }} />; }
-
-// ── Modal Bagikan ─────────────────────────────────────────────
-function ShareModal({ post, onClose }: { post: PostType; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-  const fakeUrl = `https://sosmedkw.com/post/${post.id}`;
-  const copyLink = () => { navigator.clipboard.writeText(fakeUrl).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),2000); };
-  return (
-    <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:12, width:"100%", maxWidth:460, boxShadow:"0 4px 32px rgba(0,0,0,0.3)", overflow:"hidden" }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 16px", borderBottom:"1px solid #e4e6eb" }}>
-          <span style={{ fontWeight:700, fontSize:17 }}>Bagikan postingan</span>
-          <button onClick={onClose} style={{ width:34, height:34, borderRadius:"50%", border:"none", background:"#e4e6eb", cursor:"pointer", fontSize:16 }}>✕</button>
-        </div>
-        <div style={{ margin:16, border:"1px solid #e4e6eb", borderRadius:8, overflow:"hidden" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 12px" }}>
-            <img src={post.author.avatar} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover" }} alt="" />
-            <div><div style={{ fontWeight:600, fontSize:14 }}>{post.author.name}</div><div style={{ fontSize:12, color:"#65676b" }}>{post.time}</div></div>
-          </div>
-          {post.text && <p style={{ margin:"0 12px 10px", fontSize:14, color:"#050505", lineHeight:1.4 }}>{post.text}</p>}
-          {post.image && <img src={post.image} style={{ width:"100%", maxHeight:180, objectFit:"cover", display:"block" }} alt="" />}
-        </div>
-        {[
-          { icon:"📰", label:"Bagikan ke Feed",  desc:"Posting ulang ke beranda kamu" },
-          { icon:"💬", label:"Kirim pesan",       desc:"Kirim ke teman lewat chat" },
-          { icon:"📖", label:"Bagikan ke Story", desc:"Tampilkan di ceritamu 24 jam" },
-          { icon:"👥", label:"Bagikan ke Grup",  desc:"Posting ke grup yang kamu ikuti" },
-        ].map((opt,i)=>(
-          <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 16px", cursor:"pointer" }} onMouseEnter={e=>(e.currentTarget.style.background="#f0f2f5")} onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-            <div style={{ width:40, height:40, borderRadius:"50%", background:"#e4e6eb", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{opt.icon}</div>
-            <div><div style={{ fontWeight:600, fontSize:15 }}>{opt.label}</div><div style={{ fontSize:13, color:"#65676b" }}>{opt.desc}</div></div>
-          </div>
-        ))}
-        <div style={{ display:"flex", alignItems:"center", gap:8, margin:"8px 16px 16px", background:"#f0f2f5", borderRadius:8, padding:"10px 12px" }}>
-          <span style={{ flex:1, fontSize:13, color:"#65676b", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fakeUrl}</span>
-          <button onClick={copyLink} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:copied?"#44b700":"#1877f2", color:"#fff", fontWeight:600, fontSize:13, cursor:"pointer", flexShrink:0 }}>
-            {copied?"✓ Tersalin!":"Salin tautan"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── PostCard ──────────────────────────────────────────────────
-interface PostCardProps {
+type PostCardProps = {
   post: PostType;
-  onEditPost?: (id: string, newText: string) => void;
-  onDeletePost?: (id: string) => void;
+  currentUser: Author | null;
+  onEditPost?: (id: string, newText: string, image?: string) => Promise<void> | void;
+  onDeletePost?: (id: string) => Promise<void> | void;
+};
+
+function formatCount(value: number) {
+  if (value >= 1000) return `${(value / 1000).toFixed(1).replace(".", ",")} rb`;
+  return String(value);
 }
 
-export default function PostCard({ post, onEditPost, onDeletePost }: PostCardProps) {
-  const [liked, setLiked]               = useState(false);
-  const [reaction, setReaction]         = useState(REACTIONS_LIST[0]);
-  const [count, setCount]               = useState(post.likes ?? 0);
-  const [showPopup, setShowPopup]       = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [showShare, setShowShare]       = useState(false);
-  const [comments, setComments]         = useState<CommentItem[]>([]);
-  const [commentText, setCommentText]   = useState("");
-  const [isMenuOpen, setIsMenuOpen]     = useState(false);
-  const [isEditing, setIsEditing]       = useState(false);
-  const [editText, setEditText]         = useState(post.text || "");
+function formatLikeSummary(value: number, liked: boolean) {
+  if (!liked) return formatCount(value);
+  if (value <= 1) return "Anda";
+  return `Anda dan ${formatCount(value - 1)} lainnya`;
+}
 
-  const enterTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
-  const leaveTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
-  const menuRef    = useRef<HTMLDivElement>(null);
+function mapApiComment(comment: any): CommentType {
+  const author = comment.author ?? comment.user;
 
-  const isOwnPost = post.author.name === CURRENT_USER.name;
+  return {
+    id: Number(comment.id ?? Date.now()),
+    author: {
+      name: author?.name ?? "Pengguna",
+      avatar: author?.avatarUrl ?? author?.avatar ?? defaultProfile
+    },
+    text: comment.content ?? comment.text ?? "",
+    time: comment.createdAt
+      ? new Date(comment.createdAt).toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit"
+        })
+      : comment.time ?? "Baru saja"
+  };
+}
 
+function IconThumb({ active = false }: { active?: boolean }) {
+  if (active) {
+    return <img src={likeActiveIcon} alt="" className="h-5 w-5 object-contain" />;
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      className="opacity-70"
+      style={{
+        backgroundImage: `url("${FACEBOOK_SPRITE_URL}")`,
+        backgroundPosition: "0px -441px",
+        backgroundSize: "auto",
+        width: 20,
+        height: 20,
+        backgroundRepeat: "no-repeat",
+        display: "inline-block"
+      }}
+    />
+  );
+}
+
+function IconComment({
+  variant = "fill",
+  className = ""
+}: {
+  variant?: "fill" | "outline";
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={className ? `opacity-70 ${className}` : "inline-block opacity-70"}
+      style={{
+        backgroundImage: `url("${FACEBOOK_SPRITE_URL}")`,
+        backgroundPosition: variant === "outline" ? "0px -231px" : "0px -762px",
+        backgroundSize: "auto",
+        width: variant === "outline" ? 20 : 16,
+        height: variant === "outline" ? 20 : 16,
+        backgroundRepeat: "no-repeat"
+      }}
+    />
+  );
+}
+
+function CommentCountLabel({ count }: { count: number }) {
+  return (
+    <>
+      <span>{formatCount(count)}</span>
+      <IconComment variant="fill" className="inline-block sm:hidden" />
+      <span className="hidden sm:inline">komentar</span>
+    </>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M19.884 5.884a1.25 1.25 0 0 0-1.768-1.768L12 10.232 5.884 4.116a1.25 1.25 0 1 0-1.768 1.768L10.232 12l-6.116 6.116a1.25 1.25 0 0 0 1.768 1.768L12 13.768l6.116 6.116a1.25 1.25 0 0 0 1.768-1.768L13.768 12l6.116-6.116z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function FullscreenIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        d={
+          active
+            ? "M13 5.586V3a1 1 0 1 0-2 0v4a2 2 0 0 0 2 2h4a1 1 0 1 0 0-2h-2.586l3.293-3.293a1 1 0 0 0-1.414-1.414L13 5.586zM8 18a1 1 0 0 1-1-1v-2.586l-3.293 3.293a1 1 0 1 1-1.414-1.414L5.585 13H3a1 1 0 1 1 0-2h4a2 2 0 0 1 2 2v4a1 1 0 0 1-1 1z"
+            : "M16 5.414V8a1 1 0 1 0 2 0V4a2 2 0 0 0-2-2h-4a1 1 0 1 0 0 2h2.586l-3.293 3.293a1 1 0 0 0 1.414 1.414L16 5.414zM3 11a1 1 0 0 1 1 1v2.586l3.293-3.293a1 1 0 0 1 1.414 1.414L5.414 16H8a1 1 0 1 1 0 2H4a2 2 0 0 1-2-2v-4a1 1 0 0 1 1-1z"
+        }
+      />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <circle cx="4.5" cy="10" r="1.5" />
+      <circle cx="10" cy="10" r="1.5" />
+      <circle cx="15.5" cy="10" r="1.5" />
+    </svg>
+  );
+}
+
+function EditPostIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M16.841 2.028a2.25 2.25 0 0 0-3.182 0L2.513 13.174A1.75 1.75 0 0 0 2 14.41v2.336c0 .69.56 1.25 1.25 1.25h2.336a1.75 1.75 0 0 0 1.237-.512L17.97 6.34a2.25 2.25 0 0 0 0-3.182l-1.13-1.13zm-3.156 2.096 1.035-1.035a.75.75 0 0 1 1.06 0l1.129 1.128a.75.75 0 0 1 0 1.061l-1.035 1.035-2.19-2.19z" />
+    </svg>
+  );
+}
+
+function DeletePostIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M6.5 2.75A2.25 2.25 0 0 1 8.75.5h2.5a2.25 2.25 0 0 1 2.25 2.25v.75h4.75a.75.75 0 0 1 0 1.5H17.2l-.634 9.197c-.073 1.06-.133 1.928-.271 2.613-.144.716-.392 1.331-.91 1.816-.52.484-1.151.689-1.876.784-.691.09-1.562.09-2.625.09H9.116c-1.063 0-1.933 0-2.625-.09-.725-.095-1.356-.3-1.875-.784-.52-.485-.767-1.1-.911-1.817-.138-.684-.198-1.552-.27-2.612L2.8 5H1.75a.75.75 0 0 1 0-1.5H6.5v-.75zM8 3.5h4v-.75a.75.75 0 0 0-.75-.75h-2.5a.75.75 0 0 0-.75.75v.75z" />
+    </svg>
+  );
+}
+
+function GlobeIcon() {
+  return (
+    <svg width="13" height="13" viewBox="94 401 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M104.107 415.696A7.498 7.498 0 0 1 94.5 408.5a7.48 7.48 0 0 1 3.407-6.283 5.474 5.474 0 0 0-1.653 2.334c-.753 2.217-.217 4.075 2.29 4.075.833 0 1.4.561 1.333 2.375-.013.403.52 1.78 2.45 1.89.7.04 1.184 1.053 1.33 1.74.06.29.127.65.257.97a.174.174 0 0 0 .193.096" />
+      <path d="M109.5 408.5c0 3.23-2.04 5.983-4.903 7.036l.07-.036c1.167-1 1.814-2.967 2-3.834.214-1 .303-1.3-.5-1.96-.31-.253-.677-.196-1.04-.476-.246-.19-.356-.59-.606-.73-.594-.337-1.107.11-1.954.223a2.666 2.666 0 0 1-1.15-.123c-.007 0-.007 0-.013-.004l-.083-.03c-.164-.082-.077-.206.006-.36h-.006c.086-.17.086-.376-.05-.529-.19-.214-.54-.214-.804-.224-.106-.003-.21 0-.313.004l-.003-.004c-.04 0-.084.004-.124.004h-.037c-.323.007-.666-.034-.893-.314-.263-.353-.29-.733.097-1.09.28-.26.863-.8 1.807-.22.603.37 1.166.667 1.666.5.33-.11.48-.303.094-.87a1.128 1.128 0 0 1-.214-.73c.067-.776.687-.84 1.164-1.2.466-.356.68-.943.546-1.457-.106-.413-.51-.873-1.28-1.01a7.49 7.49 0 0 1 6.524 7.434" />
+    </svg>
+  );
+}
+
+function LikeBadge() {
+  return <img src={likeIcon} alt="" className="h-[18px] w-[18px] rounded-full object-contain" />;
+}
+
+function PaperPlaneIcon({ active }: { active: boolean }) {
+  return (
+    <img
+      src={active ? sendActiveIcon : sendInactiveIcon}
+      alt=""
+      className="h-[18px] w-[18px] object-contain"
+    />
+  );
+}
+
+function PrivacyMeta({ time, privacy }: { time: string; privacy: string }) {
+  return (
+    <div className="mt-[2px] flex items-center gap-1 text-[13px] font-semibold text-[#65676b]">
+      <span>{time}</span>
+      <span>·</span>
+      {privacy === "public" ? <GlobeIcon /> : <span>Teman</span>}
+    </div>
+  );
+}
+
+function ExpandableText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const shouldCollapse = text.length > COLLAPSED_TEXT_LENGTH;
+  const shownText = !shouldCollapse || expanded ? text : `${text.slice(0, COLLAPSED_TEXT_LENGTH)}...`;
+
+  return (
+    <p className="whitespace-pre-wrap break-words text-[15px] leading-5 text-[#050505]">
+      {shownText}
+      {shouldCollapse && (
+        <>
+          {" "}
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            className="font-semibold text-[#050505] hover:underline"
+          >
+            {expanded ? "Tampilkan lebih sedikit" : "Lihat selengkapnya"}
+          </button>
+        </>
+      )}
+    </p>
+  );
+}
+
+function EmptyCommentsPlaceholder() {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <img src={noCommentIcon} alt="" className="mb-5 h-[108px] w-[108px] object-contain" />
+      <div className="text-[22px] font-bold text-[#65676b]">Belum ada komentar</div>
+      <div className="mt-1 text-[17px] text-[#65676b]">
+        Jadilah yang pertama mengomentari.
+      </div>
+    </div>
+  );
+}
+
+function CommentSkeleton({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className="mb-4 flex gap-2">
+      <div className="fb-skeleton h-9 w-9 shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1">
+        <div className="inline-block max-w-full rounded-2xl bg-[#f0f2f5] px-3 py-3">
+          <div className="fb-skeleton h-3 w-24 rounded-full" />
+          <div className="fb-skeleton mt-3 h-3 w-56 max-w-full rounded-full" />
+          {!compact && <div className="fb-skeleton mt-2 h-3 w-40 max-w-full rounded-full" />}
+        </div>
+        <div className="fb-skeleton ml-3 mt-2 h-2.5 w-20 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+function CommentsSkeleton() {
+  return (
+    <div className="py-2">
+      <CommentSkeleton />
+      <CommentSkeleton compact />
+      <CommentSkeleton />
+    </div>
+  );
+}
+
+function useModalScrollLock(active: boolean) {
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setIsMenuOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
+    if (!active) return;
 
-  const onEnterLike  = () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); enterTimer.current = setTimeout(()=>setShowPopup(true),500); };
-  const onLeaveLike  = () => { if (enterTimer.current) clearTimeout(enterTimer.current); leaveTimer.current = setTimeout(()=>setShowPopup(false),300); };
-  const onEnterPopup = () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); };
-  const onLeavePopup = () => { leaveTimer.current = setTimeout(()=>setShowPopup(false),150); };
+    const bodyOverflow = document.body.style.overflow;
+    const htmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
 
-  const onClickSuka = () => {
-    setShowPopup(false);
-    if (liked) { setLiked(false); setReaction(REACTIONS_LIST[0]); setCount(c=>c-1); }
-    else        { setLiked(true);  setReaction(REACTIONS_LIST[0]); setCount(c=>c+1); }
-  };
-  const onPickReact = (r: typeof REACTIONS_LIST[0]) => {
-    if (!liked) setCount(c=>c+1);
-    setLiked(true); setReaction(r); setShowPopup(false);
-  };
-  const onSubmitComment = () => {
-    if (!commentText.trim()) return;
-    setComments(prev=>[...prev,{ id:Date.now(), author:CURRENT_USER, text:commentText.trim(), time:"Baru saja" }]);
-    setCommentText("");
-  };
-  const handleSaveEdit = () => {
-    if (editText.trim() && onEditPost) { onEditPost(post.id, editText); setIsEditing(false); }
-  };
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = htmlOverflow;
+    };
+  }, [active]);
+}
 
-  const totalComments = (post.comments?.length ?? 0) + comments.length;
+function ModalCloseButton({ onClick, label = "Tutup" }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-[35.99px] w-[35.99px] shrink-0 items-center justify-center rounded-full bg-[#e4e6eb] text-[#050505] hover:bg-[#d8dadf]"
+      aria-label={label}
+    >
+      <CloseIcon />
+    </button>
+  );
+}
+
+function CommentsBlock({
+  comments,
+  commentsLoading
+}: {
+  comments: CommentType[];
+  commentsLoading: boolean;
+}) {
+  if (commentsLoading) return <CommentsSkeleton />;
+  if (comments.length === 0) return <EmptyCommentsPlaceholder />;
 
   return (
     <>
-      <div style={{ background:"#fff", borderRadius:8, boxShadow:"0 1px 2px rgba(0,0,0,0.1)", marginBottom:16, position:"relative", overflow:"visible" }}>
+      {comments.map((comment) => (
+        <div key={comment.id} className="mb-4 flex gap-2">
+          <img
+            src={comment.author.avatar || defaultProfile}
+            alt={comment.author.name}
+            className="h-9 w-9 rounded-full object-cover"
+          />
+          <div>
+            <div className="rounded-2xl bg-[#f0f2f5] px-3 py-2">
+              <div className="text-[13px] font-bold">{comment.author.name}</div>
+              <div className="text-[15px] leading-5">{comment.text}</div>
+            </div>
+            <div className="mt-1 px-3 text-xs font-semibold text-[#65676b]">{comment.time}</div>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
 
-        {/* Header */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px 0" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <img src={post.author.avatar} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover" }} alt="" />
-            <div>
-              <div style={{ fontWeight:600, fontSize:15, color:"#050505" }}>{post.author.name}</div>
-              <div style={{ fontSize:12, color:"#65676b", marginTop:2 }}>{post.time} · {post.privacy==="public"?"🌐":"👥"}</div>
+function CommentComposer({
+  currentUser,
+  commentText,
+  setCommentText,
+  onSubmitComment
+}: {
+  currentUser: Author | null;
+  commentText: string;
+  setCommentText: (value: string) => void;
+  onSubmitComment: () => void;
+}) {
+  if (!currentUser) {
+    return (
+      <div className="rounded-full bg-[#f0f2f5] px-4 py-3 text-center text-sm font-semibold text-[#65676b]">
+        Login untuk berkomentar
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <img
+        src={currentUser.avatar || defaultProfile}
+        alt={currentUser.name}
+        className="h-9 w-9 shrink-0 rounded-full object-cover"
+      />
+      <div className="flex min-h-[48px] flex-1 items-center rounded-[18px] bg-[#f0f2f5] px-3">
+        <input
+          value={commentText}
+          onChange={(event) => setCommentText(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") onSubmitComment();
+          }}
+          placeholder="Tulis komentar..."
+          className="min-w-0 flex-1 bg-transparent py-2 text-[15px] outline-none placeholder:text-[#65676b]"
+        />
+        <button
+          type="button"
+          onClick={onSubmitComment}
+          disabled={!commentText.trim()}
+          className="flex h-8 w-8 items-center justify-center rounded-full disabled:cursor-default"
+          aria-label="Kirim komentar"
+        >
+          <PaperPlaneIcon active={Boolean(commentText.trim())} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CommentModal({
+  post,
+  currentUser,
+  comments,
+  commentsLoading,
+  commentText,
+  setCommentText,
+  onClose,
+  onSubmitComment,
+  onToggleLike,
+  liked,
+  likeCount,
+  likeAnimating
+}: {
+  post: PostType;
+  currentUser: Author | null;
+  comments: CommentType[];
+  commentsLoading: boolean;
+  commentText: string;
+  setCommentText: (value: string) => void;
+  onClose: () => void;
+  onSubmitComment: () => void;
+  onToggleLike: () => void;
+  liked: boolean;
+  likeCount: number;
+  likeAnimating: boolean;
+}) {
+  useModalScrollLock(true);
+  const hasLikes = likeCount > 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/75 px-2 py-2 backdrop-blur-sm">
+      <div className="flex h-[96dvh] w-full max-w-[700px] flex-col overflow-hidden rounded-lg bg-white shadow-[0_12px_28px_rgba(0,0,0,0.22)] sm:max-h-[92vh]">
+        <div className="relative z-10 flex min-h-[64px] items-center justify-center border-b border-[#e4e6eb] px-14 shadow-[0_1px_4px_rgba(0,0,0,0.12)]">
+          <h2 className="truncate text-[20px] font-bold">Postingan {post.author.name}</h2>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <ModalCloseButton onClick={onClose} aria-label="Tutup komentar" />
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <article className="border-b border-[#e4e6eb]">
+            <div className="flex items-center gap-3 px-4 py-3">
+              <img
+                src={post.author.avatar || defaultProfile}
+                alt={post.author.name}
+                className="h-[38px] w-[38px] rounded-full object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[15px] font-bold">{post.author.name}</div>
+                <PrivacyMeta time={post.time} privacy={post.privacy} />
+              </div>
+            </div>
+
+            {post.text && (
+              <div className="px-4 pb-4">
+                <ExpandableText text={post.text} />
+              </div>
+            )}
+
+            {post.image && (
+              <img src={post.image} alt="Gambar postingan" className="max-h-[460px] w-full object-cover" />
+            )}
+
+            <div className="flex items-center justify-between px-4 py-2 text-sm text-[#65676b]">
+              <div>
+                {hasLikes && (
+                  <div className="flex items-center gap-2">
+                    <LikeBadge />
+                    <span>{formatLikeSummary(likeCount, liked)}</span>
+                  </div>
+                )}
+              </div>
+              <span className="flex items-center gap-1">
+                <CommentCountLabel count={comments.length} />
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1 p-1">
+              <button
+                type="button"
+                onClick={onToggleLike}
+                className={`flex h-10 items-center justify-center gap-2 rounded-md text-[15px] font-semibold hover:bg-[#f0f2f5] ${
+                  liked ? "text-[#1877f2]" : "text-[#6f7276]"
+                }`}
+              >
+                <span className={`inline-flex translate-y-[1px] ${likeAnimating ? "post-like-pop" : ""}`}>
+                  <IconThumb active={liked} />
+                </span>
+                Suka
+              </button>
+              <button
+                type="button"
+                className="flex h-10 items-center justify-center gap-2 rounded-md text-[15px] font-semibold text-[#6f7276] hover:bg-[#f0f2f5]"
+              >
+                <IconComment variant="outline" />
+                <span>Komentari</span>
+              </button>
+            </div>
+          </article>
+
+          <div className="px-4 py-4">
+            <CommentsBlock comments={comments} commentsLoading={commentsLoading} />
+          </div>
+        </div>
+
+        <div className="border-t border-[#e4e6eb] px-4 py-3">
+          <CommentComposer
+            currentUser={currentUser}
+            commentText={commentText}
+            setCommentText={setCommentText}
+            onSubmitComment={onSubmitComment}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ImageDetailModal({
+  post,
+  currentUser,
+  comments,
+  commentsLoading,
+  commentText,
+  setCommentText,
+  onClose,
+  onSubmitComment,
+  onToggleLike,
+  liked,
+  likeCount,
+  likeAnimating
+}: {
+  post: PostType;
+  currentUser: Author | null;
+  comments: CommentType[];
+  commentsLoading: boolean;
+  commentText: string;
+  setCommentText: (value: string) => void;
+  onClose: () => void;
+  onSubmitComment: () => void;
+  onToggleLike: () => void;
+  liked: boolean;
+  likeCount: number;
+  likeAnimating: boolean;
+}) {
+  useModalScrollLock(true);
+  const navigate = useNavigate();
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const imageAreaRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
+  const hasLikes = likeCount > 0;
+  const fullscreenActive = isFullscreen || isPseudoFullscreen;
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === imageAreaRef.current);
+      if (document.fullscreenElement) setIsPseudoFullscreen(false);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+
+      await imageAreaRef.current?.requestFullscreen();
+    } catch {
+      setIsPseudoFullscreen((value) => !value);
+    }
+  };
+
+  return (
+    <div ref={viewerRef} className="fixed inset-0 z-50 flex flex-col bg-[#111] text-[#050505] md:flex-row">
+      <div
+        ref={imageAreaRef}
+        className={`relative flex h-[46dvh] w-full shrink-0 items-center justify-center bg-[#111] md:h-full md:min-w-0 md:flex-1 ${
+          isPseudoFullscreen ? "fixed inset-0 z-[70] !h-dvh !w-screen" : ""
+        }`}
+      >
+        <div className="absolute left-5 top-5 z-10 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Tekan Esc untuk Menutup"
+            className="group relative flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#050505] hover:bg-[#e4e6eb]"
+            aria-label="Tutup detail"
+          >
+            <CloseIcon />
+            <span className="pointer-events-none absolute left-0 top-[48px] hidden whitespace-nowrap rounded-md bg-[#050505] px-3 py-2 text-xs font-semibold text-white shadow-lg group-hover:block">
+              Tekan Esc untuk Menutup
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="flex h-10 w-10 items-center justify-center rounded-full"
+            aria-label="Kembali ke beranda"
+          >
+            <img src={facebookIcon} alt="" className="h-10 w-10 rounded-full object-contain" />
+          </button>
+        </div>
+        <div className="absolute right-5 top-5 z-10">
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            title={fullscreenActive ? "Keluar Layar Penuh" : "Masuk Layar Penuh"}
+            className="group relative flex h-11 w-11 items-center justify-center rounded-full bg-[#050505] text-white hover:bg-[#242526]"
+            aria-label={fullscreenActive ? "Keluar Layar Penuh" : "Masuk Layar Penuh"}
+          >
+            <FullscreenIcon active={fullscreenActive} />
+            <span className="pointer-events-none absolute right-0 top-[52px] hidden whitespace-nowrap rounded-md bg-[#050505] px-3 py-2 text-xs font-semibold text-white shadow-lg group-hover:block">
+              {fullscreenActive ? "Keluar Layar Penuh" : "Masuk Layar Penuh"}
+            </span>
+          </button>
+        </div>
+        <img src={post.image} alt="Gambar postingan" className="h-full w-full object-contain" />
+      </div>
+
+      <div className={`flex min-h-0 w-full flex-1 flex-col bg-white md:h-full md:w-[350px] md:max-w-[350px] md:flex-none ${isPseudoFullscreen ? "hidden" : ""}`}>
+        <div className="relative hidden min-h-[64px] items-center justify-center border-b border-[#e4e6eb] px-14 md:flex" />
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 md:py-4">
+          <div className="mb-3 flex items-center gap-3">
+            <img src={post.author.avatar || defaultProfile} alt={post.author.name} className="h-[38px] w-[38px] rounded-full object-cover" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[15px] font-bold">{post.author.name}</div>
+              <PrivacyMeta time={post.time} privacy={post.privacy} />
             </div>
           </div>
 
-          {/* ••• */}
-          <div style={{ position:"relative" }} ref={menuRef}>
-            <div onClick={()=>setIsMenuOpen(v=>!v)}
-              style={{ width:36, height:36, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:18, color:"#65676b", userSelect:"none" }}
-              onMouseEnter={e=>(e.currentTarget.style.background="#f2f2f2")}
-              onMouseLeave={e=>(e.currentTarget.style.background="transparent")}
-            >•••</div>
+          {post.text && <ExpandableText text={post.text} />}
 
-            {isMenuOpen && (
-              <div style={{ position:"absolute", right:0, top:38, background:"#fff", borderRadius:8, boxShadow:"0 8px 24px rgba(0,0,0,0.15)", width:360, zIndex:1000, padding:"8px 0" }}>
-                <MenuItem icon={MenuIcons.save} label="Simpan postingan" sublabel="Tambahkan ini ke item tersimpan." />
-                <Divider />
-                {isOwnPost ? (
-                  <>
-                    <MenuItem icon={MenuIcons.edit}      label="Edit postingan"     onClick={()=>{ setIsEditing(true); setIsMenuOpen(false); }} />
-                    <MenuItem icon={MenuIcons.audience}  label="Edit audiens" />
-                    <MenuItem icon={MenuIcons.notif}     label="Nonaktifkan notifikasi untuk postingan ini" />
-                    <MenuItem icon={MenuIcons.translate} label="Matikan terjemahan" />
-                    <MenuItem icon={MenuIcons.info}      label="Mengapa saya melihat postingan ini?" />
-                    <MenuItem icon={MenuIcons.date}      label="Edit tanggal" />
-                    <Divider />
-                    <MenuItem icon={MenuIcons.archive}   label="Pindahkan ke arsip" />
-                    <MenuItem icon={MenuIcons.trash}     label="Pindahkan ke sampah" sublabel="Item di sampah dihapus setelah 30 hari."
-                      onClick={()=>{ if(window.confirm("Pindahkan ke sampah?")){ if(onDeletePost) onDeletePost(post.id); } setIsMenuOpen(false); }} />
-                  </>
-                ) : (
-                  <>
-                    <MenuItem icon={MenuIcons.hide}      label="Sembunyikan postingan" sublabel="Lihat lebih sedikit postingan seperti ini." />
-                    <MenuItem icon={MenuIcons.notif}     label="Nonaktifkan notifikasi untuk postingan ini" />
-                    <MenuItem icon={MenuIcons.translate} label="Matikan terjemahan" />
-                    <MenuItem icon={MenuIcons.info}      label="Mengapa saya melihat postingan ini?" />
-                    <Divider />
-                    <MenuItem icon={MenuIcons.report}    label="Laporkan postingan" sublabel="Kami tidak akan memberi tahu siapa yang melaporkan." />
-                  </>
-                )}
+          <div className="mt-5 flex items-center justify-between text-sm text-[#65676b]">
+            <div>
+              {hasLikes && (
+                <div className="flex items-center gap-2">
+                  <LikeBadge />
+                  <span>{formatLikeSummary(likeCount, liked)}</span>
+                </div>
+              )}
+            </div>
+            <span className="flex items-center gap-1">
+              <CommentCountLabel count={comments.length} />
+            </span>
+          </div>
+
+          <div className="mt-2 grid grid-cols-2 gap-1 border-t border-[#e4e6eb] pt-1">
+            <button
+              type="button"
+              onClick={onToggleLike}
+              className={`flex h-10 items-center justify-center gap-2 rounded-md text-[15px] font-semibold hover:bg-[#f0f2f5] ${
+                liked ? "text-[#1877f2]" : "text-[#6f7276]"
+              }`}
+            >
+              <span className={`inline-flex translate-y-[1px] ${likeAnimating ? "post-like-pop" : ""}`}>
+                <IconThumb active={liked} />
+              </span>
+              Suka
+            </button>
+            <button type="button" className="flex h-10 items-center justify-center gap-2 rounded-md text-[15px] font-semibold text-[#6f7276] hover:bg-[#f0f2f5]">
+              <IconComment variant="outline" />
+              <span>Komentari</span>
+            </button>
+          </div>
+
+          <div className="py-4">
+            <CommentsBlock comments={comments} commentsLoading={commentsLoading} />
+          </div>
+        </div>
+
+        <div className="border-t border-[#e4e6eb] px-4 py-3">
+          <CommentComposer currentUser={currentUser} commentText={commentText} setCommentText={setCommentText} onSubmitComment={onSubmitComment} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditPostModal({
+  post,
+  currentUser,
+  onClose,
+  onSave
+}: {
+  post: PostType;
+  currentUser: Author | null;
+  onClose: () => void;
+  onSave: (text: string, image?: string) => Promise<void> | void;
+}) {
+  const [text, setText] = useState(post.text ?? "");
+  const [previewImage, setPreviewImage] = useState(post.image);
+  const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  useModalScrollLock(true);
+
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setPreviewImage(URL.createObjectURL(file));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(text.trim(), previewImage);
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/75 px-2 backdrop-blur-sm">
+      <div className="relative flex max-h-[92vh] w-full max-w-[500px] flex-col overflow-hidden rounded-lg bg-white shadow-[0_12px_28px_rgba(0,0,0,0.22)]">
+        <div className="relative flex min-h-[64px] items-center justify-center border-b border-[#e4e6eb] px-14">
+          <h2 className="text-[24px] font-bold">Edit postingan</h2>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <ModalCloseButton onClick={onClose} label="Tutup edit" />
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="mb-4 flex items-center gap-3">
+            <img src={currentUser?.avatar || post.author.avatar || defaultProfile} alt={post.author.name} className="h-[38px] w-[38px] rounded-full object-cover" />
+            <div>
+              <div className="text-[15px] font-bold">{currentUser?.name ?? post.author.name}</div>
+              <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-[#e4e6eb] px-2 py-1 text-xs font-bold">
+                <GlobeIcon />
+                Publik
+              </div>
+            </div>
+          </div>
+
+          <textarea
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            className="min-h-[150px] w-full resize-none border-0 bg-transparent text-[24px] outline-none placeholder:text-[#65676b]"
+            placeholder={`Apa yang Anda pikirkan, ${currentUser?.name?.split(" ")[0] ?? "Anda"}?`}
+          />
+
+          {previewImage && (
+            <div className="relative mb-4 overflow-hidden rounded-lg border border-[#e4e6eb]">
+              <img src={previewImage} alt="Pratinjau" className="max-h-[320px] w-full object-contain" />
+              <button
+                type="button"
+                onClick={() => setPreviewImage(undefined)}
+                className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#050505] shadow"
+                aria-label="Hapus gambar"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          )}
+
+          <div className="mb-4 flex items-center justify-between rounded-lg border border-[#ced0d4] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.16)]">
+            <span className="text-[15px] font-bold">Tambahkan ke postingan Anda</span>
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[#f0f2f5]" aria-label="Tambah gambar">
+              <img src={photoIcon} alt="" className="h-7 w-7 object-contain" />
+            </button>
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving || (!text.trim() && !previewImage)}
+            className="h-12 w-full rounded-md bg-[#1877f2] text-[15px] font-bold text-white disabled:bg-[#e4e6eb] disabled:text-[#bcc0c4]"
+          >
+            Simpan
+          </button>
+        </div>
+
+        {isSaving && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/72 backdrop-blur-md">
+            <div className="fb-spinner h-11 w-11 rounded-full border-[3px] border-[#050505]/20 border-t-[#050505]" />
+            <div className="mt-4 text-[24px]">Menyimpan</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DeleteConfirmModal({
+  onCancel,
+  onConfirm
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  useModalScrollLock(true);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/75 px-2 backdrop-blur-sm">
+      <div className="w-full max-w-[500px] overflow-hidden rounded-lg bg-white shadow-[0_12px_28px_rgba(0,0,0,0.22)]">
+        <div className="relative flex min-h-[72px] items-center justify-center border-b border-[#e4e6eb] px-14">
+          <h2 className="text-[24px] font-bold">Hapus postingan?</h2>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <ModalCloseButton onClick={onCancel} label="Tutup hapus" />
+          </div>
+        </div>
+        <div className="px-5 py-4 text-[15px] leading-5">
+          Postingan ini akan langsung dihapus dan tidak akan tampil lagi di beranda.
+        </div>
+        <div className="flex justify-end gap-3 px-5 pb-5">
+          <button type="button" onClick={onCancel} className="rounded-md px-4 py-2 text-[15px] font-bold text-[#1877f2] hover:bg-[#f0f2f5]">
+            Batalkan
+          </button>
+          <button type="button" onClick={onConfirm} className="rounded-md bg-[#1877f2] px-8 py-2 text-[15px] font-bold text-white hover:bg-[#166fe5]">
+            Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PostCard({ post, currentUser, onEditPost, onDeletePost }: PostCardProps) {
+  const { token } = useAuthStore();
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(post.likes ?? 0);
+  const [likeAnimating, setLikeAnimating] = useState(false);
+  const [comments, setComments] = useState<CommentType[]>(post.comments ?? []);
+  const [commentsLoaded, setCommentsLoaded] = useState((post.comments ?? []).length > 0);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [showMenu, setShowMenu] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [showImageDetail, setShowImageDetail] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const displayCommentCount = commentsLoaded ? comments.length : post.commentCount ?? comments.length;
+  const hasLikes = likeCount > 0;
+  const isOwnPost = currentUser?.name === post.author.name;
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setShowMenu(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const loadComments = async () => {
+    if (commentsLoaded || commentsLoading) return;
+
+    setCommentsLoading(true);
+    try {
+      const result = await getCommentsByPostId(post.id);
+      setComments((result.data ?? result).map(mapApiComment));
+      setCommentsLoaded(true);
+    } catch (error: any) {
+      alert(error.message || "Gagal memuat komentar.");
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const openComments = () => {
+    setShowComments(true);
+    loadComments();
+  };
+
+  const openImageDetail = () => {
+    setShowImageDetail(true);
+    loadComments();
+  };
+
+  const handleLike = async () => {
+    if (!token) {
+      alert("Silakan login terlebih dahulu untuk menyukai postingan.");
+      return;
+    }
+
+    setLikeAnimating(true);
+    window.setTimeout(() => setLikeAnimating(false), 520);
+
+    try {
+      const result = await toggleLike(post.id, token);
+      setLiked(result.data.liked);
+      setLikeCount(result.data.likeCount);
+    } catch (error: any) {
+      alert(error.message || "Gagal memproses suka.");
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    const value = commentText.trim();
+    if (!value) return;
+
+    try {
+      const result = await createComment(post.id, value);
+      const created = mapApiComment(result.data ?? result);
+      setComments((current) => [...current, created]);
+      setCommentsLoaded(true);
+      setCommentText("");
+    } catch (error: any) {
+      alert(error.message || "Gagal mengirim komentar.");
+    }
+  };
+
+  const handleEditSave = async (text: string, image?: string) => {
+    await onEditPost?.(post.id, text, image);
+  };
+
+  const handleDelete = async () => {
+    await onDeletePost?.(post.id);
+    setShowDeleteModal(false);
+  };
+
+  return (
+    <>
+      <article className="mb-4 overflow-hidden rounded-lg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.24)]">
+        <div className="flex items-center justify-between px-4 pt-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <img src={post.author.avatar || defaultProfile} alt={post.author.name} className="h-[38px] w-[38px] rounded-full object-cover" />
+            <div className="min-w-0">
+              <div className="truncate text-[15px] font-bold">
+                {post.author.name}
+              </div>
+              <PrivacyMeta time={post.time} privacy={post.privacy} />
+            </div>
+          </div>
+
+          {isOwnPost && (
+            <div ref={menuRef} className="relative">
+              <button type="button" onClick={() => setShowMenu((value) => !value)} className="flex h-9 w-9 items-center justify-center rounded-full text-[#65676b] hover:bg-[#f0f2f5]" aria-label="Menu postingan">
+                <MoreIcon />
+              </button>
+              {showMenu && (
+              <div className="absolute right-1 top-10 z-10 w-56 rounded-[10px] rounded-tr-none bg-white px-3 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.22)] before:absolute before:right-0 before:top-[-10px] before:h-0 before:w-0 before:border-b-[12px] before:border-l-[12px] before:border-b-white before:border-l-transparent before:content-['']">
+                <button type="button" onClick={() => { setShowEditModal(true); setShowMenu(false); }} className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm font-semibold hover:bg-[#f0f2f5]">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[#050505]">
+                    <EditPostIcon />
+                  </span>
+                  <span>
+                      Edit postingan
+                  </span>
+                </button>
+                <button type="button" onClick={() => { setShowDeleteModal(true); setShowMenu(false); }} className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm font-semibold hover:bg-[#f0f2f5]">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[#050505]">
+                    <DeletePostIcon />
+                  </span>
+                  <span>
+                      Hapus postingan
+                  </span>
+                </button>
+              </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {post.text && (
+          <div className="px-4 py-3">
+            <ExpandableText text={post.text} />
+          </div>
+        )}
+
+        {post.image && (
+          <button type="button" onClick={openImageDetail} className="block w-full" aria-label="Buka detail gambar">
+            <img src={post.image} alt="Gambar postingan" className="max-h-[500px] w-full object-cover" />
+          </button>
+        )}
+
+        <div className="flex items-center justify-between px-4 py-2 text-sm text-[#65676b]">
+          <div>
+            {hasLikes && (
+              <div className="flex items-center gap-2">
+                <LikeBadge />
+                <span>{formatLikeSummary(likeCount, liked)}</span>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Teks / Edit */}
-        <div style={{ padding:"12px 16px 4px" }}>
-          {isEditing ? (
-            <div>
-              <textarea value={editText} onChange={e=>setEditText(e.target.value)}
-                style={{ width:"100%", padding:10, borderRadius:8, border:"1px solid #ced0d4", fontSize:15, fontFamily:"inherit", resize:"none", boxSizing:"border-box" }} rows={3} />
-              <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:8 }}>
-                <button onClick={()=>setIsEditing(false)} style={{ background:"#e4e6eb", border:"none", padding:"6px 16px", borderRadius:6, fontWeight:600, cursor:"pointer", fontSize:14 }}>Batal</button>
-                <button onClick={handleSaveEdit} style={{ background:"#1877f2", color:"#fff", border:"none", padding:"6px 16px", borderRadius:6, fontWeight:600, cursor:"pointer", fontSize:14 }}>Simpan</button>
-              </div>
-            </div>
-          ) : (
-            post.text && <p style={{ fontSize:15, margin:0, color:"#050505", lineHeight:1.5, whiteSpace:"pre-wrap" }}>{post.text}</p>
-          )}
-        </div>
-
-        {/* Gambar */}
-        {post.image && !isEditing && (
-          <div style={{ marginTop:8 }}>
-            <img src={post.image} style={{ width:"100%", maxHeight:500, objectFit:"cover", display:"block" }} alt="" />
-          </div>
-        )}
-
-        {/* Summary Row */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 16px", borderBottom:"1px solid #e4e6eb" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-              <IconThumbOutline color={liked?reaction.color:"#65676b"} />
-              <span style={{ fontSize:14, color:"#65676b" }}>{formatCount(count)}</span>
-            </div>
-            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-              <IconComment color="#65676b" />
-              <span style={{ fontSize:14, color:"#65676b" }}>{formatCount(totalComments)}</span>
-            </div>
-            <div style={{ display:"flex", alignItems:"center" }}>
-              <IconShare color="#65676b" />
-            </div>
-          </div>
-          {/* Pojok kanan: badge berubah sesuai reaksi */}
-          {liked && <ReactionBadge reaction={reaction} />}
-        </div>
-
-        {/* Tombol Aksi */}
-        <div style={{ display:"flex", padding:"4px", position:"relative" }}>
-          {showPopup && (
-            <div onMouseEnter={onEnterPopup} onMouseLeave={onLeavePopup}
-              style={{ position:"absolute", bottom:50, left:4, background:"#fff", borderRadius:30, padding:"8px 12px", display:"flex", gap:6, boxShadow:"0 4px 20px rgba(0,0,0,0.2)", zIndex:999, animation:"popIn 0.18s ease" }}>
-              {REACTIONS_LIST.map((r,i)=>(
-                <span key={i} onClick={()=>onPickReact(r)} title={r.label}
-                  style={{ fontSize:32, cursor:"pointer", lineHeight:1, display:"block", transition:"transform 0.15s" }}
-                  onMouseEnter={e=>(e.currentTarget.style.transform="scale(1.4) translateY(-6px)")}
-                  onMouseLeave={e=>(e.currentTarget.style.transform="scale(1) translateY(0)")}
-                >{r.emoji}</span>
-              ))}
-            </div>
-          )}
-
-          {/* Suka */}
-          <button onClick={onClickSuka} onMouseEnter={onEnterLike} onMouseLeave={onLeaveLike}
-            style={{ flex:1, height:40, border:"none", background:"none", borderRadius:6, cursor:"pointer", fontSize:15, fontWeight:600, display:"flex", alignItems:"center", justifyContent:"center", gap:7, color:liked?reaction.color:"#65676b", transition:"color 0.15s" }}
-            onMouseEnterCapture={e=>{const b=(e.target as HTMLElement).closest("button");if(b)(b as HTMLElement).style.background="#f0f2f5";}}
-            onMouseLeaveCapture={e=>{const b=(e.target as HTMLElement).closest("button");if(b)(b as HTMLElement).style.background="none";}}
-          >
-            <SukaIcon reaction={reaction} liked={liked} />
-            <span>{liked?reaction.label:"Suka"}</span>
-          </button>
-
-          {/* Komentar */}
-          <button onClick={()=>setShowComments(v=>!v)}
-            style={{ flex:1, height:40, border:"none", background:"none", borderRadius:6, cursor:"pointer", fontSize:15, fontWeight:600, color:showComments?"#1877f2":"#65676b", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}
-            onMouseEnter={e=>(e.currentTarget.style.background="#f0f2f5")} onMouseLeave={e=>(e.currentTarget.style.background="none")}
-          >
-            <IconComment color={showComments?"#1877f2":"#65676b"} /> <span>Komentar</span>
-          </button>
-
-          {/* Bagikan */}
-          <button onClick={()=>setShowShare(true)}
-            style={{ flex:1, height:40, border:"none", background:"none", borderRadius:6, cursor:"pointer", fontSize:15, fontWeight:600, color:"#65676b", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}
-            onMouseEnter={e=>(e.currentTarget.style.background="#f0f2f5")} onMouseLeave={e=>(e.currentTarget.style.background="none")}
-          >
-            <IconShare /> <span>Bagikan</span>
+          <button type="button" onClick={openComments} className="flex items-center gap-1 hover:underline">
+            <CommentCountLabel count={displayCommentCount} />
           </button>
         </div>
 
-        {/* Komentar */}
-        {showComments && (
-          <div style={{ borderTop:"1px solid #e4e6eb", padding:"12px 16px" }}>
-            <div style={{ display:"flex", gap:8, marginBottom:12 }}>
-              <img src={CURRENT_USER.avatar} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} alt="" />
-              <div style={{ flex:1, display:"flex", alignItems:"center", gap:8, background:"#f0f2f5", borderRadius:20, padding:"0 12px" }}>
-                <input value={commentText} onChange={e=>setCommentText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSubmitComment()}
-                  placeholder="Tulis komentar..."
-                  style={{ flex:1, border:"none", background:"transparent", outline:"none", fontSize:14, padding:"10px 0", color:"#050505" }} />
-                <button onClick={onSubmitComment} disabled={!commentText.trim()}
-                  style={{ border:"none", background:"none", cursor:commentText.trim()?"pointer":"default", fontSize:18, opacity:commentText.trim()?1:0.4 }}>➤</button>
-              </div>
-            </div>
-            {comments.length===0 && <div style={{ textAlign:"center", color:"#65676b", fontSize:14, padding:"8px 0" }}>Jadilah yang pertama berkomentar 👋</div>}
-            {comments.map(c=>(
-              <div key={c.id} style={{ display:"flex", gap:8, marginBottom:10 }}>
-                <img src={c.author.avatar} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} alt="" />
-                <div>
-                  <div style={{ background:"#f0f2f5", borderRadius:18, padding:"8px 14px" }}>
-                    <div style={{ fontWeight:700, fontSize:13, marginBottom:2 }}>{c.author.name}</div>
-                    <div style={{ fontSize:14, color:"#050505" }}>{c.text}</div>
-                  </div>
-                  <div style={{ display:"flex", gap:12, marginTop:4, paddingLeft:12 }}>
-                    <span style={{ fontSize:12, fontWeight:700, color:"#65676b", cursor:"pointer" }}>Suka</span>
-                    <span style={{ fontSize:12, fontWeight:700, color:"#65676b", cursor:"pointer" }}>Balas</span>
-                    <span style={{ fontSize:12, color:"#65676b" }}>{c.time}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-1 p-1">
+          <button
+            type="button"
+            onClick={handleLike}
+            className={`flex h-10 items-center justify-center gap-2 rounded-md text-[15px] font-semibold hover:bg-[#f0f2f5] ${
+              liked ? "text-[#1877f2]" : "text-[#6f7276]"
+            }`}
+          >
+            <span className={`inline-flex translate-y-[1px] ${likeAnimating ? "post-like-pop" : ""}`}>
+              <IconThumb active={liked} />
+            </span>
+            Suka
+          </button>
 
-        <style>{`@keyframes popIn{from{opacity:0;transform:translateY(8px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
-      </div>
+          <button type="button" onClick={openComments} className="flex h-10 items-center justify-center gap-2 rounded-md text-[15px] font-semibold text-[#6f7276] hover:bg-[#f0f2f5]">
+            <IconComment variant="outline" />
+            <span>Komentari</span>
+          </button>
+        </div>
+      </article>
 
-      {showShare && <ShareModal post={post} onClose={()=>setShowShare(false)} />}
+      {showComments && (
+        <CommentModal
+          post={post}
+          currentUser={currentUser}
+          comments={comments}
+          commentsLoading={commentsLoading}
+          commentText={commentText}
+          setCommentText={setCommentText}
+          onClose={() => setShowComments(false)}
+          onSubmitComment={handleSubmitComment}
+          onToggleLike={handleLike}
+          liked={liked}
+          likeCount={likeCount}
+          likeAnimating={likeAnimating}
+        />
+      )}
+
+      {showImageDetail && (
+        <ImageDetailModal
+          post={post}
+          currentUser={currentUser}
+          comments={comments}
+          commentsLoading={commentsLoading}
+          commentText={commentText}
+          setCommentText={setCommentText}
+          onClose={() => setShowImageDetail(false)}
+          onSubmitComment={handleSubmitComment}
+          onToggleLike={handleLike}
+          liked={liked}
+          likeCount={likeCount}
+          likeAnimating={likeAnimating}
+        />
+      )}
+
+      {showEditModal && (
+        <EditPostModal
+          post={post}
+          currentUser={currentUser}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleEditSave}
+        />
+      )}
+
+      {showDeleteModal && <DeleteConfirmModal onCancel={() => setShowDeleteModal(false)} onConfirm={handleDelete} />}
     </>
   );
 }
