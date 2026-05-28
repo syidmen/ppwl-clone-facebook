@@ -90,13 +90,15 @@ function NotificationItem({
   return (
     <div
       onClick={() => !notification.is_read && onRead(notification.id)}
-      className={`flex items-start gap-3 rounded-2xl p-4 transition-colors ${
+
+      className={`flex items-center gap-3 rounded-lg p-3 transition-colors ${
         notification.is_read
-          ? "bg-white dark:bg-gray-900"
-          : "border border-indigo-100 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/40"
-      } ${notification.is_read ? "" : "cursor-pointer"}`}
+          ? "bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
+          : "bg-[#E7F3FF] dark:bg-blue-950/30 hover:bg-[#DBECFF] dark:hover:bg-blue-950/50"
+      } cursor-pointer`}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-200 dark:bg-indigo-800">
+
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
         {notification.actor?.avatar_url ? (
           <img
             src={notification.actor.avatar_url}
@@ -104,29 +106,30 @@ function NotificationItem({
             className="h-full w-full object-cover"
           />
         ) : (
-          <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
             {initials}
           </span>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-gray-800 dark:text-gray-200">
-          <span className="font-semibold">{actorName}</span> {action}
+        <p className="text-sm text-gray-900 dark:text-gray-100 leading-tight">
+          <span className="font-bold hover:underline">{actorName}</span> {action}
           {notification.post && (
             <span className="text-gray-500 dark:text-gray-400">
               {" - "}
               <span className="italic">
                 "
-                {notification.post.content.length > 40
-                  ? `${notification.post.content.slice(0, 40)}...`
+                {notification.post.content.length > 35
+                  ? `${notification.post.content.slice(0, 35)}...`
                   : notification.post.content}
                 "
               </span>
             </span>
           )}
         </p>
-        <p className="mt-1 text-xs text-gray-400">
+
+        <p className={`mt-1 text-xs ${!notification.is_read ? 'text-[#0866FF] font-semibold' : 'text-gray-500'}`}>
           {formatDistanceToNow(new Date(notification.created_at), {
             addSuffix: true,
             locale: localeId
@@ -135,7 +138,7 @@ function NotificationItem({
       </div>
 
       {!notification.is_read && (
-        <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-indigo-500" />
+        <div className="h-3 w-3 shrink-0 rounded-full bg-[#0866FF] ml-2" />
       )}
     </div>
   );
@@ -248,15 +251,16 @@ export default function NotificationsPage() {
   };
 
   return (
+
     <div
-      className="relative"
+      className="relative max-w-[680px] mx-auto bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-4 mt-4"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {pullDistance > 0 && (
         <div
-          className="flex items-center justify-center text-indigo-500 transition-all"
+          className="flex items-center justify-center text-[#0866FF] transition-all"
           style={{ height: pullDistance, overflow: "hidden" }}
         >
           <RefreshCw
@@ -266,14 +270,17 @@ export default function NotificationsPage() {
         </div>
       )}
 
+      {/* Bagian Atas Header Notifikasi */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Bell className="text-indigo-600 dark:text-indigo-400" size={22} />
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+
+          <Bell className="text-[#0866FF]" size={24} />
+          <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
             Notifikasi
           </h1>
           {unreadCount > 0 && (
-            <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-bold text-white">
+            
+            <span className="rounded-full bg-[#E41E3F] px-2 py-0.5 text-xs font-bold text-white">
               {unreadCount}
             </span>
           )}
@@ -283,7 +290,8 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+              
+              className="flex items-center gap-1.5 text-xs font-bold text-[#0866FF] hover:underline"
             >
               <CheckCheck size={15} />
               Tandai semua dibaca
@@ -292,50 +300,53 @@ export default function NotificationsPage() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800"
+            className="rounded-full p-2 text-gray-500 bg-gray-100 dark:bg-gray-800 transition-colors hover:bg-gray-200 disabled:opacity-50"
             aria-label="Refresh notifikasi"
           >
             <RefreshCw
-              size={17}
+              size={16}
               className={isRefreshing || isLoading ? "animate-spin" : ""}
             />
           </button>
         </div>
       </div>
 
+      {/* Keadaan saat Loading Skeleton */}
       {isLoading && notifications.length === 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {[1, 2, 3].map((item) => (
             <div
               key={item}
-              className="flex animate-pulse items-start gap-3 rounded-2xl bg-white p-4 dark:bg-gray-900"
+              className="flex animate-pulse items-center gap-3 rounded-lg bg-white p-3 dark:bg-gray-900"
             >
-              <div className="h-10 w-10 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
+              <div className="h-12 w-12 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-                <div className="h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-700" />
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* Keadaan saat Kosong */}
       {!isLoading && notifications.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-900/30">
-            <Bell size={32} className="text-indigo-300 dark:text-indigo-600" />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+            <Bell size={36} className="text-gray-400 dark:text-gray-600" />
           </div>
-          <p className="font-medium text-gray-500 dark:text-gray-400">
+          <p className="font-bold text-gray-800 dark:text-gray-200">
             Belum ada notifikasi
           </p>
-          <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
-            Notifikasi akan muncul saat ada aktivitas di postinganmu
+          <p className="mt-1 text-sm text-gray-500 max-w-xs">
+            Notifikasi akan muncul saat ada aktivitas suka atau komentar di postinganmu.
           </p>
         </div>
       )}
 
+      {/* Tampilan List Utama Notifikasi */}
       {notifications.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           {notifications.map((notification) => (
             <NotificationItem
               key={notification.id}
