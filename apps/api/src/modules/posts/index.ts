@@ -1,7 +1,5 @@
 import { Elysia, t } from "elysia";
-
 import { authMiddleware } from "../../middleware/auth.middleware";
-
 import {
   createPostController,
   deletePostController,
@@ -14,49 +12,36 @@ import {
 export const postsModule = new Elysia({
   prefix: "/posts"
 })
+  .get("/", getPostsController)
 
-.get("/", getPostsController)
+  .get("/:id", getPostByIdController)
 
-.get("/:id", getPostByIdController)
+  .group("", (app) =>
+    app
+      .use(authMiddleware)
 
-.group("", (app) =>
-  app
+      .post(
+        "/upload-url",
+        getUploadUrlController,
+        {
+          body: t.Object({
+            contentType: t.String()
+          })
+        }
+      )
 
-    .use(authMiddleware)
+      .post(
+        "/",
+        createPostController,
+        {
+          body: t.Object({
+            content: t.String(),
+            imageUrl: t.Optional(t.String())
+          })
+        }
+      )
 
-    .post(
-      "/upload-url",
-      getUploadUrlController,
-      {
-        body: t.Object({
-          contentType: t.String()
-        })
-      }
-    )
+      .patch("/:id", updatePostController)
 
-    .post(
-      "/",
-      createPostController,
-      {
-        body: t.Object({
-          content: t.String({
-            minLength: 1
-          }),
-
-          imageUrl: t.Optional(
-            t.String()
-          )
-        })
-      }
-    )
-
-    .patch(
-      "/:id",
-      updatePostController
-    )
-
-    .delete(
-      "/:id",
-      deletePostController
-    )
-);
+      .delete("/:id", deletePostController)
+  );

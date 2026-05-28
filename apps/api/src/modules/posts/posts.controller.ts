@@ -22,7 +22,6 @@ export const getPostByIdController = async ({
 
   if (!post) {
     set.status = 404;
-
     return {
       message: "Post tidak ditemukan"
     };
@@ -42,7 +41,6 @@ export const createPostController = async ({
   try {
     if (!authUser) {
       set.status = 401;
-
       return {
         message: "Unauthorized"
       };
@@ -59,7 +57,6 @@ export const createPostController = async ({
     };
   } catch (error: any) {
     set.status = 400;
-
     return {
       message: error.message
     };
@@ -85,7 +82,6 @@ export const updatePostController = async ({
     };
   } catch (error: any) {
     set.status = 400;
-
     return {
       message: error.message
     };
@@ -104,7 +100,6 @@ export const deletePostController = async ({
     );
   } catch (error: any) {
     set.status = 400;
-
     return {
       message: error.message
     };
