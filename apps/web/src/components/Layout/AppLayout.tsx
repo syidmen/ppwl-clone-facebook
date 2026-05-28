@@ -25,8 +25,8 @@ export default function AppLayout() {
       {/* Syafira, WelcomeToast ditaruh di sini agar posisinya relatif terhadap layar utama */}
       <WelcomeToast />
 
-      {/* Main content: pt-14 disesuaikan dengan tinggi Navbar Facebook (h-14) */}
-      <main className="pt-14 pb-16 md:pb-0 min-h-screen">
+      {/* Main content mengikuti tinggi navbar 55.99px. */}
+      <main className="min-h-screen pt-[55.99px]">
         {isFeedPage ? (
           // Jika di halaman beranda (Feed), biarkan full-width agar halaman 3-kolom milik Atikoh bisa terbentang rapi
           <div className="w-full">

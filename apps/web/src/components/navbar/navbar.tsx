@@ -1,28 +1,41 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, LogOut, Menu, User, X } from "lucide-react"; 
+import { Menu, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "../../stores/auth.store";
 import { useNotificationStore } from "../../stores/notification.store";
 import { useUIStore } from "../../stores/ui.store";
 import { Avatar } from "../ui/Avatar";
-import { useEffect } from "react";
+import fakebookLogo from "../../assets/icons/fakebook.png";
+import keluarIcon from "../../assets/icons/keluar.png";
 
-// ==========================================
-// IMPORT ASET IKON FACEBOOK 
-// ==========================================
-import facebookLogo from "../../assets/icons/facebook.svg";
-import searchIcon from "../../assets/icons/search.png";
-import videoIcon from "../../assets/icons/video.png";
-import marketplaceIcon from "../../assets/icons/marketplace.png";
-import groupIcon from "../../assets/icons/group.png";
-import gamingIcon from "../../assets/icons/gaming.png";
-import menuGridIcon from "../../assets/icons/menu-grid.png";
-import messengerIcon from "../../assets/icons/messenger.png";
-import bellIcon from "../../assets/icons/bell.png";
+function HomeIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M9.464 1.286C10.294.803 11.092.5 12 .5c.908 0 1.707.303 2.537.786.795.462 1.7 1.142 2.815 1.977l2.232 1.675c1.391 1.042 2.359 1.766 2.888 2.826.53 1.059.53 2.268.528 4.006v4.3c0 1.355 0 2.471-.119 3.355-.124.928-.396 1.747-1.052 2.403-.657.657-1.476.928-2.404 1.053-.884.119-2 .119-3.354.119H7.93c-1.354 0-2.471 0-3.355-.119-.928-.125-1.747-.396-2.403-1.053-.656-.656-.928-1.475-1.053-2.403C1 18.541 1 17.425 1 16.07v-4.3c0-1.738-.002-2.947.528-4.006.53-1.06 1.497-1.784 2.888-2.826L6.65 3.263c1.114-.835 2.02-1.515 2.815-1.977zM10.5 13A1.5 1.5 0 0 0 9 14.5V21h6v-6.5a1.5 1.5 0 0 0-1.5-1.5h-3z"
+        fill={active ? "#0866FF" : "currentColor"}
+      />
+    </svg>
+  );
+}
+
+function NotificationIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M3 9.5a9 9 0 1 1 18 0v2.927c0 1.69.475 3.345 1.37 4.778a1.5 1.5 0 0 1-1.272 2.295h-4.625a4.5 4.5 0 0 1-8.946 0H2.902a1.5 1.5 0 0 1-1.272-2.295A9.01 9.01 0 0 0 3 12.43V9.5zm6.55 10a2.5 2.5 0 0 0 4.9 0h-4.9z"
+        fill={active ? "#0866FF" : "currentColor"}
+      />
+    </svg>
+  );
+}
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
   const { mobileNavOpen, setMobileNavOpen } = useUIStore();
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -30,226 +43,212 @@ export default function Navbar() {
     document.documentElement.classList.remove("dark");
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [profileMenuOpen]);
 
   const isActive = (path: string) => location.pathname === path;
 
-  // NavLinks untuk Mobile Menu
+  const handleLogout = () => {
+    logout();
+    setProfileMenuOpen(false);
+    navigate("/login");
+  };
+
+  const refreshHome = () => {
+    window.location.href = "/";
+  };
+
+  const homeLink = {
+    to: "/",
+    label: "Beranda",
+    icon: <HomeIcon active={isActive("/")} />
+  };
+
   const navLinks = [
-    { to: "/", label: "Beranda", icon: <Home size={22} className={isActive("/") ? "text-[#0866FF]" : "text-gray-500"} fill={isActive("/") ? "#0866FF" : "none"} /> },
-    { to: "/video", label: "Video", icon: <img src={videoIcon} alt="Video" className="w-6 h-6 object-contain" /> },
-    { to: "/marketplace", label: "Marketplace", icon: <img src={marketplaceIcon} alt="Marketplace" className="w-6 h-6 object-contain" /> },
-    { to: "/groups", label: "Grup", icon: <img src={groupIcon} alt="Grup" className="w-6 h-6 object-contain" /> },
-    { to: "/gaming", label: "Gaming", icon: <img src={gamingIcon} alt="Gaming" className="w-6 h-6 object-contain" /> },
+    homeLink,
     ...(isAuthenticated
       ? [
           {
             to: "/notifications",
             label: "Notifikasi",
             icon: (
-              <div className="relative">
-                <img src={bellIcon} alt="Notifikasi" className="w-6 h-6 object-contain" />
+              <span className="relative inline-flex">
+                <NotificationIcon active={isActive("/notifications")} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-[#E41E3F] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#E41E3F] px-1 text-[11px] font-bold text-white">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
-              </div>
-            ),
+              </span>
+            )
           },
           {
             to: "/profile",
-            label: "Profile",
-            icon: <Avatar name={user?.name} src={user?.avatarUrl} className="h-6 w-6 text-xs" />,
-          },
+            label: "Profil",
+            icon: <Avatar name={user?.name} src={user?.avatarUrl} className="h-7 w-7 text-xs" />
+          }
         ]
-      : []),
+      : [])
   ];
 
   return (
     <>
-      {/* ================ */}
-      {/* DESKTOP NAVBAR    */}
-      {/* ================ */}
-      <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-[56px] bg-white border-b border-gray-200 items-center px-4 justify-between shadow-sm select-none">
-        
-        {/* BAGIAN KIRI: Logo & Search Bar */}
-        <div className="flex items-center gap-2 min-w-[240px]">
-          <Link to="/" className="w-10 h-10 rounded-full hover:opacity-95 transition-opacity">
-            <img src={facebookLogo} alt="Facebook" className="w-10 h-10" />
+      <nav className="fixed left-0 right-0 top-0 z-50 hidden h-[55.99px] select-none items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm md:flex">
+        <button
+          type="button"
+          onClick={refreshHome}
+          className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-90"
+          aria-label="Refresh beranda"
+        >
+          <img src={fakebookLogo} alt="Fakebook" className="h-10 w-10 object-contain" />
+        </button>
+
+        <div className="flex h-full flex-1 items-center justify-center">
+          <Link
+            to={homeLink.to}
+            title={homeLink.label}
+            className={`relative flex h-full w-[112px] items-center justify-center border-b-[3px] transition-colors ${
+              isActive(homeLink.to)
+                ? "border-[#0866FF] text-[#0866FF]"
+                : "border-transparent text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            {homeLink.icon}
           </Link>
-          <div className="hidden lg:flex items-center bg-[#F0F2F5] rounded-full px-3 w-[240px] h-10 gap-2 border border-transparent">
-            <img src={searchIcon} alt="Search" className="w-4 h-4 opacity-60" />
-            <input 
-              type="text" 
-              placeholder="Cari di Facebook" 
-              className="bg-transparent text-[15px] w-full focus:outline-none placeholder-gray-500 text-gray-800"
-              disabled
-            />
-          </div>
         </div>
 
-        {/* BAGIAN TENGAH: Menu Utama */}
-        <div className="flex items-center justify-center h-full flex-1 max-w-[680px] gap-1">
-          {/* Beranda */}
-          <Link to="/" className={`h-full w-[110px] flex items-center justify-center border-b-[3px] transition-all relative ${isActive("/") ? "border-[#0866FF]" : "border-transparent hover:bg-gray-100 rounded-lg my-1"}`} title="Beranda">
-            <Home size={28} className={isActive("/") ? "text-[#0866FF]" : "text-gray-500 opacity-60"} fill={isActive("/") ? "#0866FF" : "none"} />
-          </Link>
-          {/* Video */}
-          <div className="h-full w-[110px] flex items-center justify-center border-b-[3px] border-transparent hover:bg-gray-100 rounded-lg my-1 cursor-not-allowed" title="Video">
-            <img src={videoIcon} className="w-7 h-7 object-contain opacity-60" alt="Video" />
-          </div>
-          {/* Marketplace */}
-          <div className="h-full w-[110px] flex items-center justify-center border-b-[3px] border-transparent hover:bg-gray-100 rounded-lg my-1 cursor-not-allowed" title="Marketplace">
-            <img src={marketplaceIcon} className="w-7 h-7 object-contain opacity-60" alt="Marketplace" />
-          </div>
-          {/* Grup */}
-          <div className="h-full w-[110px] flex items-center justify-center border-b-[3px] border-transparent hover:bg-gray-100 rounded-lg my-1 cursor-not-allowed" title="Grup">
-            <img src={groupIcon} className="w-7 h-7 object-contain opacity-60" alt="Grup" />
-          </div>
-          {/* Gaming */}
-          <div className="h-full w-[110px] flex items-center justify-center border-b-[3px] border-transparent hover:bg-gray-100 rounded-lg my-1 cursor-not-allowed" title="Gaming">
-            <img src={gamingIcon} className="w-7 h-7 object-contain opacity-60" alt="Gaming" />
-          </div>
-        </div>
-
-        {/* BAGIAN KANAN: Menu, Messenger, Notifikasi, Akun */}
-        <div className="flex items-center gap-2 min-w-[240px] justify-end">
-
+        <div className="flex min-w-[112px] items-center justify-end gap-2">
           {isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              {/* Menu Grid */}
-              <button className="w-10 h-10 bg-[#E4E6EB] hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors" title="Menu">
-                <img src={menuGridIcon} alt="Menu" className="w-5 h-5 object-contain" />
-              </button>
-
-              {/* Messenger */}
-              <button className="w-10 h-10 bg-[#E4E6EB] hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors" title="Messenger">
-                <img src={messengerIcon} alt="Messenger" className="w-[22px] h-[22px] object-contain" />
-              </button>
-
-              {/* Notifikasi */}
-              <Link to="/notifications" className={`w-10 h-10 rounded-full flex items-center justify-center relative transition-colors ${isActive("/notifications") ? "bg-[#E7F3FF]" : "bg-[#E4E6EB] hover:bg-gray-300"}`} title="Notifikasi">
-                <img src={bellIcon} alt="Notifikasi" className="w-5 h-5 object-contain" />
+            <>
+              <Link
+                to="/notifications"
+                title="Notifikasi"
+                className={`relative flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                  isActive("/notifications") ? "bg-[#E7F3FF] text-[#0866FF]" : "bg-[#E4E6EB] text-[#050505] hover:bg-gray-300"
+                }`}
+                aria-label="Notifikasi"
+              >
+                <NotificationIcon active={isActive("/notifications")} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#E41E3F] text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center border-2 border-white">
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#E41E3F] px-1 text-[11px] font-bold text-white">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </Link>
 
-              {/* Profil & Keluar */}
-              <div className="flex items-center gap-1">
-                <Link to="/profile" className="rounded-full hover:opacity-80 transition-opacity ml-1" title="Profil">
-                  <Avatar name={user?.name} src={user?.avatarUrl} className="h-10 w-10 text-xs border border-gray-200" />
-                </Link>
-                <button onClick={handleLogout} className="ml-2 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 p-2 rounded-full transition-colors" title="Keluar">
-                  <LogOut size={16} />
+              <div ref={profileMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setProfileMenuOpen((value) => !value)}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                    profileMenuOpen || isActive("/profile") ? "bg-[#E7F3FF]" : "bg-[#E4E6EB] hover:bg-gray-300"
+                  }`}
+                  aria-label="Profil"
+                  aria-expanded={profileMenuOpen}
+                >
+                  <Avatar name={user?.name} src={user?.avatarUrl} className="h-10 w-10 text-xs" />
                 </button>
+
+                {profileMenuOpen && (
+                  <div className="absolute right-0 top-12 w-[300px] rounded-lg bg-white p-3 text-[#050505] shadow-[0_4px_18px_rgba(0,0,0,0.2)]">
+                    <div className="flex items-center gap-3 px-2 py-2">
+                      <Avatar name={user?.name} src={user?.avatarUrl} className="h-10 w-10 shrink-0 text-xs" />
+                      <p className="min-w-0 truncate text-[17px] font-bold">{user?.name ?? "Profil"}</p>
+                    </div>
+                    <div className="my-2 h-px bg-[#CED0D4]" />
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-[15px] font-semibold hover:bg-[#F0F2F5]"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4E6EB]">
+                        <img src={keluarIcon} alt="" className="h-5 w-5 object-contain" />
+                      </span>
+                      Keluar
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
+            </>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link to="/login" className="px-4 py-2 text-sm font-bold text-[#0866FF] hover:bg-blue-50 rounded-lg transition-colors">Masuk</Link>
-              <Link to="/register" className="px-4 py-2 text-sm font-bold text-white bg-[#42B72A] hover:bg-[#36A420] rounded-lg transition-colors shadow-sm">Daftar Baru</Link>
-            </div>
+            <Link to="/login" className="text-sm font-bold text-[#0866FF] hover:underline">
+              Masuk
+            </Link>
           )}
         </div>
       </nav>
 
-      {/* ========================================== */}
-      {/* MOBILE TOP BAR          */}
-      {/* ========================================== */}
-      <nav className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm select-none">
-        <Link to="/" className="text-2xl font-black text-[#0866FF] tracking-tighter">
-          facebook
-        </Link>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setMobileNavOpen(!mobileNavOpen)} className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
-            {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
+      <nav className="fixed left-0 right-0 top-0 z-50 flex h-[55.99px] select-none items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm md:hidden">
+        <button
+          type="button"
+          onClick={refreshHome}
+          className="flex h-10 w-10 items-center justify-center rounded-full"
+          aria-label="Refresh beranda"
+        >
+          <img src={fakebookLogo} alt="Fakebook" className="h-10 w-10 object-contain" />
+        </button>
+        <button
+          onClick={() => setMobileNavOpen(!mobileNavOpen)}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500"
+          aria-label={mobileNavOpen ? "Tutup navigasi" : "Buka navigasi"}
+        >
+          {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
       </nav>
 
-      {/* Mobile Menu Drawer */}
       {mobileNavOpen && (
-        <div className="md:hidden fixed inset-0 z-40 pt-14">
+        <div className="fixed inset-0 z-40 pt-[55.99px] md:hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
-          <div className="relative bg-[#F0F2F5] w-72 h-full shadow-2xl p-4 flex flex-col gap-2 transition-transform overflow-y-auto">
+          <div className="relative flex h-full w-72 flex-col gap-2 overflow-y-auto bg-[#F0F2F5] p-4 shadow-2xl">
             {user && (
-              <div className="flex items-center gap-3 p-3 mb-2 bg-white rounded-xl shadow-sm">
-                <Avatar name={user.name} src={user.avatarUrl} className="h-10 w-10 flex-shrink-0" />
-                <div className="overflow-hidden">
-                  <p className="font-bold text-sm text-gray-900 truncate">{user.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+              <div className="mb-2 flex items-center gap-3 rounded-lg bg-white p-3 shadow-sm">
+                <Avatar name={user.name} src={user.avatarUrl} className="h-10 w-10 shrink-0" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-gray-900">{user.name}</p>
+                  <p className="truncate text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
             )}
 
-            <div className="space-y-1 bg-white rounded-xl p-2 shadow-sm">
+            <div className="space-y-1 rounded-lg bg-white p-2 shadow-sm">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
                   onClick={() => setMobileNavOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
-                    isActive(link.to)
-                      ? "bg-[#E7F3FF] text-[#0866FF]"
-                      : "text-gray-700 hover:bg-gray-100"
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                    isActive(link.to) ? "bg-[#E7F3FF] text-[#0866FF]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <span className={isActive(link.to) ? "opacity-100" : "opacity-70"}>
-                    {link.icon}
-                  </span>
+                  {link.icon}
                   {link.label}
                 </Link>
               ))}
             </div>
 
-            {!isAuthenticated ? (
-              <div className="mt-auto bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2">
-                <Link to="/login" onClick={() => setMobileNavOpen(false)} className="w-full text-center py-2.5 text-sm font-bold text-[#0866FF] border border-[#0866FF] rounded-lg hover:bg-blue-50">Masuk</Link>
-                <Link to="/register" onClick={() => setMobileNavOpen(false)} className="w-full text-center py-2.5 text-sm font-bold text-white bg-[#42B72A] rounded-lg hover:bg-[#36A420]">Daftar Akun Baru</Link>
-              </div>
-            ) : (
-              <button
-                onClick={() => { handleLogout(); setMobileNavOpen(false); }}
-                className="mt-6 flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-red-50 text-red-600 font-bold rounded-xl shadow-sm border border-transparent hover:border-red-200 transition-all text-sm mb-20"
+            {!isAuthenticated && (
+              <Link
+                to="/login"
+                onClick={() => setMobileNavOpen(false)}
+                className="mt-auto rounded-lg bg-white px-4 py-3 text-center text-sm font-bold text-[#0866FF] shadow-sm"
               >
-                <LogOut size={18} />
-                Keluar Akun
-              </button>
+                Masuk
+              </Link>
             )}
           </div>
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* MOBILE BOTTOM NAV BAR */}
-      {/* ========================================== */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-white border-t border-gray-200 flex items-center justify-around shadow-lg">
-        {navLinks.filter((_, i) => i < 5).map((link) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            className={`flex flex-col items-center justify-center gap-1 w-14 h-full transition-colors relative ${
-              isActive(link.to) ? "opacity-100" : "opacity-50"
-            }`}
-          >
-            {link.icon}
-            {isActive(link.to) && <div className="absolute top-0 left-2 right-2 h-[3px] bg-[#0866FF] rounded-b-full" />}
-          </Link>
-        ))}
-        {!isAuthenticated && (
-          <Link to="/login" className="flex flex-col items-center justify-center gap-0.5 w-16 h-full text-gray-400">
-            <User size={20} />
-            <span className="text-[10px] font-bold">Masuk</span>
-          </Link>
-        )}
-      </nav>
     </>
   );
 }
