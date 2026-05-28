@@ -21,7 +21,7 @@ const FACEBOOK_SPRITE_URL =
 type PostCardProps = {
   post: PostType;
   currentUser: Author | null;
-  onEditPost?: (id: string, newText: string, image?: string) => Promise<void> | void;
+  onEditPost?: (id: string, newText: string, image?: string, imageFile?: File | null) => Promise<void> | void;
   onDeletePost?: (id: string) => Promise<void> | void;
 };
 
@@ -663,10 +663,11 @@ function EditPostModal({
   post: PostType;
   currentUser: Author | null;
   onClose: () => void;
-  onSave: (text: string, image?: string) => Promise<void> | void;
+  onSave: (text: string, image?: string, imageFile?: File | null) => Promise<void> | void;
 }) {
   const [text, setText] = useState(post.text ?? "");
   const [previewImage, setPreviewImage] = useState(post.image);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   useModalScrollLock(true);
@@ -674,13 +675,14 @@ function EditPostModal({
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    setImageFile(file);
     setPreviewImage(URL.createObjectURL(file));
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave(text.trim(), previewImage);
+      await onSave(text.trim(), previewImage, imageFile);
       onClose();
     } finally {
       setIsSaving(false);
@@ -721,7 +723,10 @@ function EditPostModal({
               <img src={previewImage} alt="Pratinjau" className="max-h-[320px] w-full object-contain" />
               <button
                 type="button"
-                onClick={() => setPreviewImage(undefined)}
+                onClick={() => {
+                  setPreviewImage(undefined);
+                  setImageFile(null);
+                }}
                 className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#050505] shadow"
                 aria-label="Hapus gambar"
               >
@@ -879,8 +884,8 @@ export default function PostCard({ post, currentUser, onEditPost, onDeletePost }
     }
   };
 
-  const handleEditSave = async (text: string, image?: string) => {
-    await onEditPost?.(post.id, text, image);
+  const handleEditSave = async (text: string, image?: string, imageFile?: File | null) => {
+    await onEditPost?.(post.id, text, image, imageFile);
   };
 
   const handleDelete = async () => {

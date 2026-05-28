@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createPost, deletePost, getPosts, updatePost } from "../../api/posts.api";
+import { createPost, deletePost, getPosts, updatePost, uploadPostImage } from "../../api/posts.api";
 import PostForm from "../../components/post/PostForm";
 import PostCard from "../../components/post/PostCard";
 import { useAuthStore } from "../../stores/auth.store";
@@ -55,6 +55,10 @@ function formatRelativeTime(value?: string) {
 }
 
 function mapApiPost(post: any): PostType {
+  const imageUrl = typeof post.imageUrl === "string" && !post.imageUrl.startsWith("blob:")
+    ? post.imageUrl
+    : undefined;
+
   return {
     id: post.id,
     author: {
@@ -64,7 +68,7 @@ function mapApiPost(post: any): PostType {
     time: formatRelativeTime(post.createdAt),
     privacy: "public",
     text: post.content,
-    image: post.imageUrl,
+    image: imageUrl,
     likes: post.likeCount ?? 0,
     commentCount: post.commentCount ?? 0,
     comments: []
@@ -156,7 +160,7 @@ export default function FeedPage() {
       return;
     }
 
-    const image = imageFile ? URL.createObjectURL(imageFile) : undefined;
+    const image = imageFile ? await uploadPostImage(imageFile, token) : undefined;
     const result = await createPost({ content: postText, imageUrl: image }, token);
 
     const newPost = mapApiPost(result.data);
@@ -171,16 +175,18 @@ export default function FeedPage() {
     setIsFormOpen(false);
   };
 
-  const handleUpdatePost = async (id: string, newText: string, image?: string) => {
+  const handleUpdatePost = async (id: string, newText: string, image?: string, imageFile?: File | null) => {
     if (!token) {
       alert("Silakan login terlebih dahulu.");
       return;
     }
 
-    await updatePost(id, { content: newText, imageUrl: image ?? "" }, token);
+    const nextImage = imageFile ? await uploadPostImage(imageFile, token) : image;
+
+    await updatePost(id, { content: newText, imageUrl: nextImage ?? "" }, token);
     setPosts((currentPosts) =>
       currentPosts.map((post) =>
-        post.id === id ? { ...post, text: newText, image } : post
+        post.id === id ? { ...post, text: newText, image: nextImage } : post
       )
     );
   };
