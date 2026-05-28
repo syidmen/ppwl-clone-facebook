@@ -12,7 +12,7 @@ import noCommentIcon from "../../assets/icons/no-comment.png";
 import sendActiveIcon from "../../assets/icons/kirim-active.png";
 import sendInactiveIcon from "../../assets/icons/kirim-unactive.png";
 import likeActiveIcon from "../../assets/icons/likes-active.png";
-import facebookIcon from "../../assets/icons/facebook.svg";
+import fakebookIcon from "../../assets/icons/fakebook.png";
 
 const COLLAPSED_TEXT_LENGTH = 80;
 const FACEBOOK_SPRITE_URL =
@@ -574,7 +574,7 @@ function ImageDetailModal({
             className="flex h-10 w-10 items-center justify-center rounded-full"
             aria-label="Kembali ke beranda"
           >
-            <img src={facebookIcon} alt="" className="h-10 w-10 rounded-full object-contain" />
+            <img src={fakebookIcon} alt="" className="h-10 w-10 rounded-full object-contain" />
           </button>
         </div>
         <div className="absolute right-5 top-5 z-10">

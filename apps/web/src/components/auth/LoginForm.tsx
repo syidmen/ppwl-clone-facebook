@@ -108,9 +108,9 @@ export function LoginForm({ onSuccess, onGoRegister }: LoginFormProps) {
         <hr className="flex-1 border-[#CED0D4]" />
       </div>
 
-      <div className={loading ? "pointer-events-none opacity-60" : ""}>
+      <div className={`flex w-full justify-center ${loading ? "pointer-events-none opacity-60" : ""}`}>
         <GoogleLogin
-          width="360"
+          width="400"
           onSuccess={(credentialResponse) =>
             handleGoogleLogin(credentialResponse.credential)
           }

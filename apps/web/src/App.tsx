@@ -13,15 +13,15 @@ import NotificationsPage from "./pages/notifications/NotificationsPage";
 import { PostDetailPage } from "./pages/post-detail";
 import ProfilePage from "./pages/profile/ProfilePage";
 import { useEffect, useState } from "react";
-import facebookLogo from "./assets/icons/facebook.svg";
-import fromMetaLogo from "./assets/icons/from-meta.svg";
+import fakebookLogo from "./assets/icons/fakebook.png";
+import meteLogo from "./assets/icons/mete.png";
 
 function LoadingScreen() {
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#f7f8fb]">
-      <img src={facebookLogo} alt="Facebook" className="h-24 w-24" />
+      <img src={fakebookLogo} alt="Fakebook" className="h-24 w-24 object-contain" />
       <div className="absolute bottom-8 flex items-center justify-center">
-        <img src={fromMetaLogo} alt="Meta" className="h-8 w-auto" />
+        <img src={meteLogo} alt="Mete" className="h-24 w-auto" />
       </div>
     </div>
   );
