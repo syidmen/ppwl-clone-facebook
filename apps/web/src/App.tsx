@@ -6,6 +6,7 @@ import {
   useNavigate
 } from "react-router-dom";
 import { AppLayout } from "./components/Layout";
+import { AuthGuard } from "./components/auth/AuthGuard";
 import LoginPage from "./pages/auth/LoginPage";
 import FeedPage from "./pages/feed/FeedPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -66,7 +67,14 @@ export function App() {
         <Route element={<AppLayout />}>
           <Route index element={<FeedPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route
+            path="/notifications"
+            element={
+              <AuthGuard>
+                <NotificationsPage />
+              </AuthGuard>
+            }
+          />
           <Route path="/post-detail" element={<PostDetailPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

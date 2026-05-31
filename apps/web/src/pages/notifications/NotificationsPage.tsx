@@ -8,62 +8,7 @@ import {
   type Notification
 } from "../../stores/notification.store";
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    user_id: "me",
-    actor_id: "2",
-    type: "like",
-    post_id: "10",
-    comment_id: null,
-    message: "Budi Santoso menyukai postinganmu",
-    is_read: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    actor: {
-      id: "2",
-      name: "Budi Santoso",
-      username: "budi",
-      avatar_url: null
-    },
-    post: { id: "10", content: "Postingan pertamaku di sini!" }
-  },
-  {
-    id: "2",
-    user_id: "me",
-    actor_id: "3",
-    type: "comment",
-    post_id: "10",
-    comment_id: "5",
-    message: "Siti Rahayu mengomentari postinganmu",
-    is_read: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    actor: {
-      id: "3",
-      name: "Siti Rahayu",
-      username: "siti",
-      avatar_url: null
-    },
-    post: { id: "10", content: "Postingan pertamaku di sini!" }
-  },
-  {
-    id: "3",
-    user_id: "me",
-    actor_id: "4",
-    type: "like",
-    post_id: "11",
-    comment_id: null,
-    message: "Andi Wijaya menyukai postinganmu",
-    is_read: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    actor: {
-      id: "4",
-      name: "Andi Wijaya",
-      username: "andi",
-      avatar_url: null
-    },
-    post: { id: "11", content: "Berbagi foto hari ini." }
-  }
-];
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 function NotificationItem({
   notification,
@@ -158,16 +103,13 @@ export default function NotificationsPage() {
 
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated || !token) {
-      setNotifications(
-        MOCK_NOTIFICATIONS,
-        MOCK_NOTIFICATIONS.filter((notification) => !notification.is_read).length
-      );
+      setNotifications([], 0);
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch("/api/notifications", {
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -178,10 +120,7 @@ export default function NotificationsPage() {
       const data = await response.json();
       setNotifications(data.notifications ?? [], data.unreadCount ?? 0);
     } catch {
-      setNotifications(
-        MOCK_NOTIFICATIONS,
-        MOCK_NOTIFICATIONS.filter((notification) => !notification.is_read).length
-      );
+      setNotifications([], 0);
     } finally {
       setLoading(false);
     }
@@ -203,7 +142,7 @@ export default function NotificationsPage() {
     if (!token) return;
 
     try {
-      await fetch(`/api/notifications/${id}/read`, {
+      await fetch(`${API_URL}/notifications/${id}/read`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -217,7 +156,7 @@ export default function NotificationsPage() {
     if (!token) return;
 
     try {
-      await fetch("/api/notifications/read-all", {
+      await fetch(`${API_URL}/notifications/read-all`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -246,7 +185,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] pt-4 pb-12 w-full">
+    <div className="min-h-[calc(100vh-55.99px)] w-full bg-[#F0F2F5] px-4 pt-4 pb-12">
       <div
         className="relative max-w-[680px] mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-6 select-none"
         onTouchStart={handleTouchStart}
