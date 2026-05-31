@@ -11,6 +11,7 @@ import { userModule } from "./modules/users";
 
 const allowedOrigins = [
   env("WEB_ORIGIN", "http://localhost:5173")!,
+  "https://d1pjqlav14h8sb.cloudfront.net",
   "http://localhost:5173",
   "http://127.0.0.1:5173"
 ];

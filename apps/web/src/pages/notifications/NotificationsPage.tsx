@@ -10,63 +10,6 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    user_id: "me",
-    actor_id: "2",
-    type: "like",
-    post_id: "10",
-    comment_id: null,
-    message: "Budi Santoso menyukai postinganmu",
-    is_read: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    actor: {
-      id: "2",
-      name: "Budi Santoso",
-      username: "budi",
-      avatar_url: null
-    },
-    post: { id: "10", content: "Postingan pertamaku di sini!" }
-  },
-  {
-    id: "2",
-    user_id: "me",
-    actor_id: "3",
-    type: "comment",
-    post_id: "10",
-    comment_id: "5",
-    message: "Siti Rahayu mengomentari postinganmu",
-    is_read: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    actor: {
-      id: "3",
-      name: "Siti Rahayu",
-      username: "siti",
-      avatar_url: null
-    },
-    post: { id: "10", content: "Postingan pertamaku di sini!" }
-  },
-  {
-    id: "3",
-    user_id: "me",
-    actor_id: "4",
-    type: "like",
-    post_id: "11",
-    comment_id: null,
-    message: "Andi Wijaya menyukai postinganmu",
-    is_read: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    actor: {
-      id: "4",
-      name: "Andi Wijaya",
-      username: "andi",
-      avatar_url: null
-    },
-    post: { id: "11", content: "Berbagi foto hari ini." }
-  }
-];
-
 function NotificationItem({
   notification,
   onRead
@@ -90,15 +33,13 @@ function NotificationItem({
   return (
     <div
       onClick={() => !notification.is_read && onRead(notification.id)}
-
       className={`flex items-center gap-3 rounded-lg p-3 transition-colors ${
         notification.is_read
-          ? "bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
-          : "bg-[#E7F3FF] dark:bg-blue-950/30 hover:bg-[#DBECFF] dark:hover:bg-blue-950/50"
+          ? "bg-white hover:bg-gray-100"
+          : "bg-[#E7F3FF] hover:bg-[#DBECFF]"
       } cursor-pointer`}
     >
-
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200">
         {notification.actor?.avatar_url ? (
           <img
             src={notification.actor.avatar_url}
@@ -106,17 +47,17 @@ function NotificationItem({
             className="h-full w-full object-cover"
           />
         ) : (
-          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+          <span className="text-sm font-bold text-gray-700">
             {initials}
           </span>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-gray-900 dark:text-gray-100 leading-tight">
+        <p className="text-sm text-gray-900 leading-tight">
           <span className="font-bold hover:underline">{actorName}</span> {action}
           {notification.post && (
-            <span className="text-gray-500 dark:text-gray-400">
+            <span className="text-gray-500">
               {" - "}
               <span className="italic">
                 "
@@ -162,10 +103,7 @@ export default function NotificationsPage() {
 
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated || !token) {
-      setNotifications(
-        MOCK_NOTIFICATIONS,
-        MOCK_NOTIFICATIONS.filter((notification) => !notification.is_read).length
-      );
+      setNotifications([], 0);
       return;
     }
 
@@ -182,10 +120,7 @@ export default function NotificationsPage() {
       const data = await response.json();
       setNotifications(data.notifications ?? [], data.unreadCount ?? 0);
     } catch {
-      setNotifications(
-        MOCK_NOTIFICATIONS,
-        MOCK_NOTIFICATIONS.filter((notification) => !notification.is_read).length
-      );
+      setNotifications([], 0);
     } finally {
       setLoading(false);
     }
@@ -212,7 +147,6 @@ export default function NotificationsPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch {
-      // Keep the optimistic UI update.
     }
   };
 
@@ -227,7 +161,7 @@ export default function NotificationsPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch {
-      // Keep the optimistic UI update.
+      // Keep optimistic update
     }
   };
 
@@ -251,111 +185,109 @@ export default function NotificationsPage() {
   };
 
   return (
-
-    <div
-      className="relative max-w-[680px] mx-auto bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-4 mt-4"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {pullDistance > 0 && (
-        <div
-          className="flex items-center justify-center text-[#0866FF] transition-all"
-          style={{ height: pullDistance, overflow: "hidden" }}
-        >
-          <RefreshCw
-            size={20}
-            className={pullDistance > 60 ? "animate-spin" : ""}
-          />
-        </div>
-      )}
-
-      {/* Bagian Atas Header Notifikasi */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-
-          <Bell className="text-[#0866FF]" size={24} />
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-            Notifikasi
-          </h1>
-          {unreadCount > 0 && (
-            
-            <span className="rounded-full bg-[#E41E3F] px-2 py-0.5 text-xs font-bold text-white">
-              {unreadCount}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllRead}
-              
-              className="flex items-center gap-1.5 text-xs font-bold text-[#0866FF] hover:underline"
-            >
-              <CheckCheck size={15} />
-              Tandai semua dibaca
-            </button>
-          )}
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing || isLoading}
-            className="rounded-full p-2 text-gray-500 bg-gray-100 dark:bg-gray-800 transition-colors hover:bg-gray-200 disabled:opacity-50"
-            aria-label="Refresh notifikasi"
+    <div className="min-h-[calc(100vh-55.99px)] w-full bg-[#F0F2F5] px-4 pt-4 pb-12">
+      <div
+        className="relative max-w-[680px] mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-6 select-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {pullDistance > 0 && (
+          <div
+            className="flex items-center justify-center text-[#0866FF] transition-all"
+            style={{ height: pullDistance, overflow: "hidden" }}
           >
             <RefreshCw
-              size={16}
-              className={isRefreshing || isLoading ? "animate-spin" : ""}
+              size={20}
+              className={pullDistance > 60 ? "animate-spin" : ""}
             />
-          </button>
-        </div>
-      </div>
-
-      {/* Keadaan saat Loading Skeleton */}
-      {isLoading && notifications.length === 0 && (
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3].map((item) => (
-            <div
-              key={item}
-              className="flex animate-pulse items-center gap-3 rounded-lg bg-white p-3 dark:bg-gray-900"
-            >
-              <div className="h-12 w-12 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-                <div className="h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-700" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Keadaan saat Kosong */}
-      {!isLoading && notifications.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-            <Bell size={36} className="text-gray-400 dark:text-gray-600" />
           </div>
-          <p className="font-bold text-gray-800 dark:text-gray-200">
-            Belum ada notifikasi
-          </p>
-          <p className="mt-1 text-sm text-gray-500 max-w-xs">
-            Notifikasi akan muncul saat ada aktivitas suka atau komentar di postinganmu.
-          </p>
-        </div>
-      )}
+        )}
 
-      {/* Tampilan List Utama Notifikasi */}
-      {notifications.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {notifications.map((notification) => (
-            <NotificationItem
-              key={notification.id}
-              notification={notification}
-              onRead={handleMarkAsRead}
-            />
-          ))}
+        {/* Header Notifikasi */}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bell className="text-[#0866FF]" size={24} />
+            <h1 className="text-2xl font-black tracking-tight text-gray-900">
+              Notifikasi
+            </h1>
+            {unreadCount > 0 && (
+              <span className="rounded-full bg-[#E41E3F] px-2 py-0.5 text-xs font-bold text-white">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                className="flex items-center gap-1.5 text-xs font-bold text-[#0866FF] hover:underline"
+              >
+                <CheckCheck size={15} />
+                Tandai semua dibaca
+              </button>
+            )}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing || isLoading}
+              className="rounded-full p-2 text-gray-500 bg-gray-100 transition-colors hover:bg-gray-200 disabled:opacity-50"
+              aria-label="Refresh notifikasi"
+            >
+              <RefreshCw
+                size={16}
+                className={isRefreshing || isLoading ? "animate-spin" : ""}
+              />
+            </button>
+          </div>
         </div>
-      )}
+
+        {/* Skeleton Loading Loader */}
+        {isLoading && notifications.length === 0 && (
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="flex animate-pulse items-center gap-3 rounded-lg bg-white p-3"
+              >
+                <div className="h-12 w-12 shrink-0 rounded-full bg-gray-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 rounded bg-gray-200" />
+                  <div className="h-3 w-1/4 rounded bg-gray-200" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State UI */}
+        {!isLoading && notifications.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+              <Bell size={36} className="text-gray-400" />
+            </div>
+            <p className="font-bold text-gray-800">
+              Belum ada notifikasi
+            </p>
+            <p className="mt-1 text-sm text-gray-500 max-w-xs">
+              Notifikasi akan muncul saat ada aktivitas suka atau komentar di postinganmu.
+            </p>
+          </div>
+        )}
+
+        {/* List Item Rendering */}
+        {notifications.length > 0 && (
+          <div className="flex flex-col gap-1">
+            {notifications.map((notification) => (
+              <NotificationItem
+                key={notification.id}
+                notification={notification}
+                onRead={handleMarkAsRead}
+              />
+            ))}
+          </div>
+        )}
+      </div> 
     </div>
   );
 }

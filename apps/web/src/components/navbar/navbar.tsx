@@ -161,10 +161,14 @@ export default function Navbar() {
 
                 {profileMenuOpen && (
                   <div className="absolute right-0 top-12 w-[300px] rounded-lg bg-white p-3 text-[#050505] shadow-[0_4px_18px_rgba(0,0,0,0.2)]">
-                    <div className="flex items-center gap-3 px-2 py-2">
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-[#F0F2F5]"
+                    >
                       <Avatar name={user?.name} src={user?.avatarUrl} className="h-10 w-10 shrink-0 text-xs" />
                       <p className="min-w-0 truncate text-[17px] font-bold">{user?.name ?? "Profil"}</p>
-                    </div>
+                    </Link>
                     <div className="my-2 h-px bg-[#CED0D4]" />
                     <button
                       type="button"

@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { prisma } from '../../db';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import { createNotification } from '../notifications/notification.service';
 
 export const commentsRoutes = new Elysia()
   // 1. Endpoint dummy/real untuk target dosen (GET /comments)
@@ -32,7 +33,7 @@ export const commentsRoutes = new Elysia()
 
     const post = await prisma.post.findUnique({
       where: { id },
-      select: { id: true }
+      select: { id: true, userId: true }
     });
 
     if (!post) {
@@ -61,8 +62,7 @@ export const commentsRoutes = new Elysia()
       }
     });
 
-    // Expose event placeholder untuk Anggota 6 (Notification)
-    console.log(`[Notification Placeholder] User ${authUser.sub} mengomentari post ${id}`);
+    await createNotification(post.userId, authUser.sub, 'comment', id, newComment.id);
 
     return newComment;
   }, {
