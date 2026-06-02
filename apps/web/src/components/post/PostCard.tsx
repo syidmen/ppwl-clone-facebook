@@ -12,7 +12,7 @@ import noCommentIcon from "../../assets/icons/no-comment.png";
 import sendActiveIcon from "../../assets/icons/kirim-active.png";
 import sendInactiveIcon from "../../assets/icons/kirim-unactive.png";
 import likeActiveIcon from "../../assets/icons/likes-active.png";
-import fakebookIcon from "../../assets/icons/fakebook.png";
+import fakebookIcon from "../../assets/icons/Fakebook-1.png";
 
 const COLLAPSED_TEXT_LENGTH = 80;
 const FACEBOOK_SPRITE_URL =

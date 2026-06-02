@@ -1,5 +1,5 @@
 import type { UserDTO } from "@ppwl/shared";
-import { googleLogin, login, register, updateMe } from "./auth.api";
+import { getAvatarUploadUrl, googleLogin, login, register, updateMe } from "./auth.api";
 
 type LoginBody = {
   email: string;
@@ -54,4 +54,25 @@ export async function updateProfile(
   }
 
   return updateMe(token, body);
+}
+
+export async function uploadProfileAvatar(file: File, token: string): Promise<string> {
+  if (!token) {
+    throw new Error("Sesi login tidak ditemukan.");
+  }
+
+  const result = await getAvatarUploadUrl(token, file.type);
+  const uploadResponse = await fetch(result.data.uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type
+    },
+    body: file
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Gagal mengunggah foto profil ke S3.");
+  }
+
+  return result.data.imageUrl;
 }

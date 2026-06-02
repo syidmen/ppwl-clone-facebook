@@ -1,5 +1,5 @@
 import { LoginForm } from "../../components/auth/LoginForm";
-import fakebookLogo from "../../assets/icons/fakebook.png";
+import fakebookLogo from "../../assets/icons/Fakebook-1.png";
 
 type LoginPageProps = {
   onSuccess?: () => void;
