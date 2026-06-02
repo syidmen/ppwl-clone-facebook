@@ -14,7 +14,7 @@ import NotificationsPage from "./pages/notifications/NotificationsPage";
 import { PostDetailPage } from "./pages/post-detail";
 import ProfilePage from "./pages/profile/ProfilePage";
 import { useEffect, useState } from "react";
-import fakebookLogo from "./assets/icons/fakebook.png";
+import fakebookLogo from "./assets/icons/Fakebook-1.png";
 import meteLogo from "./assets/icons/mete.png";
 
 function LoadingScreen() {

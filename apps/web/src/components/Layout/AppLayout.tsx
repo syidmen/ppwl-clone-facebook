@@ -14,7 +14,10 @@ export default function AppLayout() {
   const { setNotifications } = useNotificationStore();
   const location = useLocation();
   const isFeedPage = location.pathname === "/";
-  const isFullWidthPage = isFeedPage || location.pathname === "/notifications";
+  const isFullWidthPage =
+    isFeedPage ||
+    location.pathname === "/notifications" ||
+    location.pathname === "/profile";
 
   useEffect(() => {
     const root = document.documentElement;
@@ -68,7 +71,7 @@ export default function AppLayout() {
       {/* Main content mengikuti tinggi navbar 55.99px. */}
       <main className="min-h-[calc(100vh-55.99px)] pt-[55.99px]">
         {isFullWidthPage ? (
-          // Feed dan notifikasi dibiarkan full-width agar background halaman mengisi layar.
+          // Feed, notifikasi, dan profil dibiarkan full-width agar background halaman mengisi layar.
           <div className="w-full">
             <Outlet />
           </div>

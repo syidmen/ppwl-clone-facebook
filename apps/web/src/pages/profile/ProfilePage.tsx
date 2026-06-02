@@ -9,7 +9,7 @@ export default function ProfilePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#F0F2F5] px-4 py-10 text-[#1C1E21]">
+      <div className="min-h-[calc(100vh-55.99px)] w-full bg-[#F0F2F5] px-4 py-10 text-[#1C1E21]">
         <div className="mx-auto w-full max-w-lg">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-[20px] font-semibold text-[#1C1E21] leading-[1.3]">Edit Profil</h1>

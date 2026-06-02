@@ -3,6 +3,7 @@ import { env } from "../../env";
 import { authMiddleware } from "../../middleware/auth.middleware";
 import { prisma } from "../../db";
 import { hashPassword } from "../../utils/password";
+import { createImageUploadUrl } from "../posts/upload.service";
 
 function toPublicUser(user: {
   id: string;
@@ -88,6 +89,28 @@ export const userModule = new Elysia()
 
         return toPublicUser(user);
       })
+      .post(
+        "/avatar-upload-url",
+        async ({ authUser, body, set }) => {
+          if (!authUser) {
+            set.status = 401;
+            return { message: "Unauthorized: silakan login" };
+          }
+
+          try {
+            const data = await createImageUploadUrl(authUser.sub, body.contentType);
+            return { success: true, data };
+          } catch (error: any) {
+            set.status = 400;
+            return { message: error.message };
+          }
+        },
+        {
+          body: t.Object({
+            contentType: t.String()
+          })
+        }
+      )
       .patch(
         "",
         async ({ authUser, body, set }) => {

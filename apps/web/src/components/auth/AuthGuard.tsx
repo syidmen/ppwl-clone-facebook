@@ -12,9 +12,9 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
     return (
       <>
         {fallback ?? (
-          <div className="flex min-h-screen items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <p className="text-gray-500 text-sm">
+          <div className="flex min-h-[calc(100vh-55.99px)] w-full items-center justify-center bg-[#F0F2F5] px-4 text-[#1C1E21]">
+            <div className="rounded-[8px] bg-white px-6 py-5 text-center shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+              <p className="text-sm font-semibold text-[#606770]">
                 Kamu harus login untuk mengakses halaman ini.
               </p>
             </div>

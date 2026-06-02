@@ -1,5 +1,5 @@
 import { RegisterForm } from "../../components/auth/RegisterForm";
-import fakebookLogo from "../../assets/icons/fakebook.png";
+import fakebookLogo from "../../assets/icons/Fakebook-1.png";
 
 type RegisterPageProps = {
   onSuccess?: () => void;

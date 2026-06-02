@@ -5,7 +5,7 @@ import { useAuthStore } from "../../stores/auth.store";
 import { useNotificationStore } from "../../stores/notification.store";
 import { useUIStore } from "../../stores/ui.store";
 import { Avatar } from "../ui/Avatar";
-import fakebookLogo from "../../assets/icons/fakebook.png";
+import fakebookLogo from "../../assets/icons/Fakebook-1.png";
 import keluarIcon from "../../assets/icons/keluar.png";
 
 function HomeIcon({ active }: { active: boolean }) {

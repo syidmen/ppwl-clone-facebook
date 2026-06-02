@@ -15,6 +15,15 @@ export type UpdateMeBody = {
   password?: string;
 };
 
+type UploadUrlResponse = {
+  success: boolean;
+  data: {
+    uploadUrl: string;
+    imageUrl: string;
+    key: string;
+  };
+};
+
 async function request<T>(path: string, options: RequestInit = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -65,5 +74,13 @@ export function updateMe(token: string, body: UpdateMeBody) {
     method: "PATCH",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(body)
+  });
+}
+
+export function getAvatarUploadUrl(token: string, contentType: string) {
+  return request<UploadUrlResponse>("/me/avatar-upload-url", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ contentType })
   });
 }
