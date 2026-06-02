@@ -11,7 +11,7 @@ export default function LoginPage({ onSuccess, onGoRegister }: LoginPageProps) {
     <div className="min-h-screen bg-[#F0F2F5] text-[#1C1E21] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src={fakebookLogo} alt="Fakebook" className="mx-auto mb-4 h-14 w-14 object-contain" />
+          <img src={fakebookLogo} alt="FBook" className="mx-auto mb-4 h-14 w-14 object-contain" />
           <h1 className="text-[24px] font-semibold text-[#1C1E21] leading-[1.3]">Selamat datang!</h1>
           <p className="text-[13px] text-[#606770] mt-1">
             Masuk ke akun kamu untuk melanjutkan.

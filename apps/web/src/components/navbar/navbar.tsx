@@ -110,7 +110,7 @@ export default function Navbar() {
           className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-90"
           aria-label="Refresh beranda"
         >
-          <img src={fakebookLogo} alt="Fakebook" className="h-10 w-10 object-contain" />
+          <img src={fakebookLogo} alt="FBook" className="h-10 w-10 object-contain" />
         </button>
 
         <div className="flex h-full flex-1 items-center justify-center">
@@ -199,7 +199,7 @@ export default function Navbar() {
           className="flex h-10 w-10 items-center justify-center rounded-full"
           aria-label="Refresh beranda"
         >
-          <img src={fakebookLogo} alt="Fakebook" className="h-10 w-10 object-contain" />
+          <img src={fakebookLogo} alt="FBook" className="h-10 w-10 object-contain" />
         </button>
         <button
           onClick={() => setMobileNavOpen(!mobileNavOpen)}

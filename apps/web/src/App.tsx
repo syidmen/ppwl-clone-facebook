@@ -20,7 +20,7 @@ import meteLogo from "./assets/icons/mete.png";
 function LoadingScreen() {
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#f7f8fb]">
-      <img src={fakebookLogo} alt="Fakebook" className="h-24 w-24 object-contain" />
+      <img src={fakebookLogo} alt="FBook" className="h-24 w-24 object-contain" />
       <div className="absolute bottom-8 flex items-center justify-center">
         <img src={meteLogo} alt="Mete" className="h-24 w-auto" />
       </div>
