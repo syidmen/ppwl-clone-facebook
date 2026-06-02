@@ -274,6 +274,8 @@ export function EditProfileForm() {
     }
   }
 
+  const avatarCoverSize = getAvatarCoverSize();
+
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       {apiError && (
@@ -444,7 +446,7 @@ export function EditProfileForm() {
                   <img
                     src={avatarPreviewUrl}
                     alt="Pratinjau foto profil"
-                    className="h-full w-full select-none object-cover"
+                    className="absolute max-w-none select-none"
                     draggable={false}
                     onLoad={(event) => {
                       const image = event.currentTarget;
@@ -457,7 +459,11 @@ export function EditProfileForm() {
                       );
                     }}
                     style={{
-                      transform: `translate(${avatarPosition.x}px, ${avatarPosition.y}px) scale(${avatarZoom})`
+                      width: `${avatarCoverSize.width}px`,
+                      height: `${avatarCoverSize.height}px`,
+                      left: "50%",
+                      top: "50%",
+                      transform: `translate(calc(-50% + ${avatarPosition.x}px), calc(-50% + ${avatarPosition.y}px))`
                     }}
                   />
                   <div className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-white/80" />
