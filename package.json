@@ -14,9 +14,17 @@
     "build": "bun --filter '*' build",
     "typecheck": "bun --filter '*' typecheck",
     "lint": "bun --filter '*' lint",
-    "db:generate": "bun --cwd apps/api prisma generate",
-    "db:migrate": "bun --cwd apps/api prisma migrate dev",
-    "db:studio": "bun --cwd apps/api prisma studio"
+    "db:generate": "bun --filter @ppwl/api db:generate:local",
+    "db:push": "bun --filter @ppwl/api db:push:local",
+    "db:seed": "bun --filter @ppwl/api db:seed:local",
+    "db:studio": "bun --filter @ppwl/api db:studio:local",
+    "db:generate:local": "bun --filter @ppwl/api db:generate:local",
+    "db:push:local": "bun --filter @ppwl/api db:push:local",
+    "db:seed:local": "bun --filter @ppwl/api db:seed:local",
+    "db:studio:local": "bun --filter @ppwl/api db:studio:local",
+    "db:generate:pg": "bun --filter @ppwl/api db:generate:pg",
+    "db:push:pg": "bun --filter @ppwl/api db:push:pg",
+    "db:studio:pg": "bun --filter @ppwl/api db:studio:pg"
   },
   "devDependencies": {
     "@prisma/client": "6.19.3",
