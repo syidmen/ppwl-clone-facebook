@@ -13,7 +13,8 @@ Link Backend: https://h3qxapyg5yku6ow5w5k2rmyp640bozqw.lambda-url.us-east-1.on.a
 - Frontend: Vite, React, Tailwind CSS
 - Backend: ElysiaJS, Prisma ORM
 - Shared: tipe bersama antara frontend dan backend
-- Database lokal/production target: PostgreSQL
+- Database lokal: SQLite via Prisma
+- Database production target: PostgreSQL di AWS RDS
 
 ## Struktur
 
@@ -35,37 +36,17 @@ Install dependency:
 bun install
 ```
 
-Siapkan env:
+Siapkan env local:
 
 ```bash
-cp apps/api/.env.example apps/api/.env
+cp apps/api/.env.local.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 ```
 
-Pastikan PostgreSQL sudah berjalan, lalu buat database lokal sesuai `DATABASE_URL` di `apps/api/.env`.
-
-Contoh jika memakai database lokal bernama `ppwl_social_media`:
-
-```bash
-createdb -U postgres ppwl_social_media
-```
-
-Atau lewat `psql`:
-
-```bash
-psql -U postgres -c "CREATE DATABASE ppwl_social_media;"
-```
-
-Contoh `DATABASE_URL` lokal:
+Local backend memakai SQLite, jadi tidak perlu install PostgreSQL. Contoh `DATABASE_URL` local:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppwl_social_media?schema=public"
-```
-
-Jalankan migration untuk membuat tabel:
-
-```bash
-bun run db:migrate
+DATABASE_URL="file:./dev.db"
 ```
 
 Generate Prisma Client:
@@ -74,11 +55,26 @@ Generate Prisma Client:
 bun run db:generate
 ```
 
+Buat/sinkronkan tabel SQLite local:
+
+```bash
+bun run db:push
+```
+
+Isi dummy data local agar feed, komentar, like, dan notifikasi tidak kosong:
+
+```bash
+bun run db:seed
+```
+
 Catatan:
 
-- `db:generate` hanya membuat Prisma Client, tidak membuat database/tabel.
-- `db:migrate` menjalankan Prisma migration ke database yang ada di `DATABASE_URL`.
-- Jika `DATABASE_URL` mengarah ke RDS/production, jangan jalankan `db:migrate` tanpa koordinasi tim.
+- `apps/api/prisma/schema.prisma` dipakai untuk SQLite local.
+- `apps/api/prisma/schema-pg.prisma` dipakai untuk PostgreSQL production/RDS.
+- `db:generate`, `db:push`, `db:seed`, dan `db:studio` default ke SQLite local.
+- Untuk production PostgreSQL, gunakan `bun run db:generate:pg` dan `bun run db:push:pg` dengan `POSTGRES_DATABASE_URL`.
+- Untuk package Lambda production, jalankan `bun --filter @ppwl/api package:lambda:pg` supaya Prisma Client di-generate dari schema PostgreSQL sebelum dibundle.
+- Jika `POSTGRES_DATABASE_URL` mengarah ke RDS/production, jangan jalankan `db:push:pg` tanpa koordinasi tim.
 
 Jalankan development server:
 
